@@ -20,6 +20,11 @@ function MinterApp() {
   const [imageUri, setImageUri] = useState('');
   const [amount, setAmount] = useState('');
   const [decimals, setDecimals] = useState('9');
+  
+  // Новые состояния для пула ликвидности
+  const [addLiquidity, setAddLiquidity] = useState(false);
+  const [liquidityAmount, setLiquidityAmount] = useState('10'); // По умолчанию 10 TON/GRAM
+
   const [loading, setLoading] = useState(false);
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
@@ -51,7 +56,13 @@ function MinterApp() {
 
     setLoading(true);
     try {
-      const commentText = `CREATE | Name:${name} | Symbol:${symbol} | Supply:${amount} | Logo:${imageUri} | Owner:${userAddress}`;
+      // Базовая стоимость создания (0.5 GRAM) + сумма ликвидности, если она выбрана
+      const baseFee = 0.5;
+      const liqVal = addLiquidity ? parseFloat(liquidityAmount || '0') : 0;
+      const totalCost = baseFee + liqVal;
+
+      // Формируем расширенный комментарий с параметрами ликвидности для вашего парсера
+      const commentText = `CREATE | Name:${name} | Symbol:${symbol} | Supply:${amount} | Logo:${imageUri} | LiqPool:${addLiquidity ? 'YES' : 'NO'} | LiqAmount:${liqVal} | Owner:${userAddress}`;
 
       const commentCell = beginCell()
         .storeUint(0, 32)
@@ -63,7 +74,7 @@ function MinterApp() {
         messages: [
           {
             address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano('0.5').toString(),
+            amount: toNano(totalCost.toString()).toString(), // Сумма с учетом ликвидности
             payload: commentCell.toBoc().toString('base64'),
           },
         ],
@@ -71,7 +82,7 @@ function MinterApp() {
 
       const result = await tonConnectUI.sendTransaction(transaction);
       console.log('Транзакция отправлена:', result);
-      alert('Заявка на создание токена и оплата успешно отправлены!');
+      alert('Заявка на создание токена и настройку ликвидности отправлена!');
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
@@ -80,32 +91,30 @@ function MinterApp() {
     }
   };
 
+  // Расчет общей суммы для кнопки
+  const totalDisplayCost = 0.5 + (addLiquidity ? parseFloat(liquidityAmount || '0') : 0);
+
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-6 selection:bg-pink-500 selection:text-white">
       
-      {/* Шапка / Маркет-хедер */}
+      {/* Шапка */}
       <header className="w-full max-w-md text-center pt-2 pb-4">
         <div className="inline-flex items-center gap-2 mb-3 px-3.5 py-1.5 bg-gradient-to-r from-purple-500/10 via-cyan-500/10 to-pink-500/10 border border-purple-500/20 rounded-full text-xs font-bold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-pink-400 shadow-lg shadow-purple-500/5">
           <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
-          GRAM-TOKEN-STARS Market Launchpad
+          TON Market Launchpad
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">
-          Создание Крипто-Актива
+          Создание Jetton Актива
         </h1>
         <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
-          Мгновенный выпуск токенов по стандартам топовых DeFi-маркетплейсов.
-          После создания токен будет отправлен вам на кошелёк 👛
+          Мгновенный выпуск токенов и запуск пулов ликвидности.
         </p>
       </header>
 
-      {/* Основная форма с карточкой Market-стиля */}
+      {/* Основная форма */}
       <main className="w-full max-w-md my-2 flex-1">
         <div className="relative bg-gradient-to-b from-slate-900/90 to-slate-950/90 backdrop-blur-2xl border border-slate-800/80 rounded-3xl p-5 shadow-2xl shadow-cyan-950/30 space-y-4 overflow-hidden">
           
-            {/* Декоративное световое свечение сверху */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
           <form onSubmit={handleMint} className="relative z-10 space-y-4">
             
             {/* Блок: Основная информация */}
@@ -211,6 +220,60 @@ function MinterApp() {
               </div>
             </div>
 
+            {/* НОВЫЙ БЛОК: Пул ликвидности DEX */}
+            <div className="space-y-3 bg-slate-950/60 p-3.5 rounded-2xl border border-cyan-500/30">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={addLiquidity}
+                    onChange={(e) => setAddLiquidity(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900"
+                  />
+                  💧 Добавить в пул ликвидности
+                </label>
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                  DeFi Ready
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Добавление ликвидности необходимо для того, чтобы ваш токен начал реально торговаться на децентрализованных площадках (DEX) вроде DeDust и STON.fi.
+              </p>
+
+              {addLiquidity && (
+                <div className="pt-2 border-t border-slate-800/80 space-y-2 animate-fadeIn">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-300">Сумма ликвидности (TON / GRAM):</span>
+                    <span className="text-cyan-400 font-mono font-bold">{liquidityAmount} TON</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100000"
+                    step="1"
+                    value={liquidityAmount}
+                    onChange={(e) => setLiquidityAmount(e.target.value)}
+                    className="w-full accent-cyan-400 bg-slate-900 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500">
+                    <span>1 TON</span>
+                    <span>50,000 TON</span>
+                    <span>100,000 TON</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100000"
+                    value={liquidityAmount}
+                    onChange={(e) => setLiquidityAmount(e.target.value)}
+                    placeholder="Введите сумму от 1 до 100000"
+                    className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Кнопки управления */}
             <div className="pt-2">
               {!userAddress ? (
@@ -228,7 +291,7 @@ function MinterApp() {
                     disabled={loading}
                     className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/30 active:scale-[0.98]"
                   >
-                    {loading ? 'Создание заявки...' : 'Создать токен (0.5 GRAM)'}
+                    {loading ? 'Создание заявки...' : `Создать токен (${totalDisplayCost} GRAM)`}
                   </button>
                   <button
                     type="button"
@@ -243,13 +306,13 @@ function MinterApp() {
             </div>
           </form>
 
-          {/* Информационный маркет-футер */}
+          {/* Футер карточки */}
           <div className="relative z-10 bg-slate-950/60 rounded-2xl p-3 border border-slate-800/80 text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
             <p className="flex items-center gap-1.5">
               <span className="text-cyan-400">🌐</span> Платформа <span className="text-white font-semibold">GRAM-TOKEN-START</span>
             </p>
             <p className="flex items-center gap-1.5 text-amber-400/90 font-medium">
-              <span>💎</span> Стоимость выпуска: <span className="font-bold">0.5 GRAM</span> (всё включено)
+              <span>💎</span> Итого к оплате: <span className="font-bold">{totalDisplayCost} GRAM</span> (деплой + ликвидность)
             </p>
           </div>
         </div>
