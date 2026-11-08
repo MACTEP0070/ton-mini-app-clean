@@ -147,4 +147,93 @@ function MinterApp() {
                 rows={3}
                 placeholder="Опишите назначение и особенности вашего жетона..."
                 value={description}
-                onChange={(e
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition resize-none"
+              />
+            </div>
+
+            {/* Количество эмиссии и Decimals в сетке */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Эмиссия <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="1000000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Decimals
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={decimals}
+                  onChange={(e) => setDecimals(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Динамическая кнопка авторизации / выпуска */}
+            <div className="pt-2">
+              {!userAddress ? (
+                <button
+                  type="button"
+                  onClick={handleConnectWallet}
+                  className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
+                >
+                  Подключить кошелек
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-sm rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
+                  >
+                    {loading ? 'Создание...' : 'Создать токен'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConnectWallet}
+                    className="w-full py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-400 text-xs rounded-xl transition"
+                  >
+                    Подключен: {formatAddress(userAddress)} (Отключить)
+                  </button>
+                </div>
+              )}
+            </div>
+          </form>
+
+          {/* Информационный блок */}
+          <div className="bg-[#0f172a]/70 rounded-xl p-3.5 border border-slate-800 text-[11px] text-slate-400 space-y-2 leading-relaxed">
+            <p>
+              Токен появится на сайте <span className="text-cyan-400 font-semibold">GRAM-TOKEN-START</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.
+            </p>
+            <p className="text-amber-400/90 font-medium">
+              При создании из кошелька уйдёт около 0,15 GRAM. Держите на нём не меньше 0,2 GRAM.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default function Home() {
+  const manifestUrl = 'https://ton-mini-app-clean.vercel.app/tonconnect-manifest.json';
+
+  return (
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
+      <MinterApp />
+    </TonConnectUIProvider>
+  );
+}
