@@ -1,6 +1,6 @@
-import { beginCell, Address, toNano } from '@ton/core';
+import { beginCell, Address, toNano, Cell } from '@ton/core';
 
-// Функция создания ячейки метаданных токена (On-chain / Off-chain URI)
+// Функция создания ячейки метаданных токена (Off-chain URI)
 export function buildJettonContentCell(contentUri: string): Cell {
   return beginCell()
     .storeUint(0x01, 8) // Off-chain content prefix
@@ -8,15 +8,15 @@ export function buildJettonContentCell(contentUri: string): Cell {
     .endCell();
 }
 
-// Формирование начальных данных (data) для Jetton Minter
+// Формирование начальных данных для Jetton Minter
 export function buildJettonMinterDataCell(
   owner: Address,
   jettonContentUri: string
 ) {
   return beginCell()
-    .storeCoins(0) // Total supply (изначально 0 до первого минта)
-    .storeAddress(owner) // Адрес владельца контракта
-    .storeRef(buildJettonContentCell(jettonContentUri)) // Ссылка на метаданные
-    .storeRef(beginCell().endCell()) // Код Jetton Wallet
+    .storeCoins(0)
+    .storeAddress(owner)
+    .storeRef(buildJettonContentCell(jettonContentUri))
+    .storeRef(beginCell().endCell())
     .endCell();
 }
