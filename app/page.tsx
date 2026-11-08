@@ -216,10 +216,10 @@ function MinterApp() {
           {/* Информационный блок */}
           <div className="bg-[#0f172a]/70 rounded-xl p-3.5 border border-slate-800 text-[11px] text-slate-400 space-y-2 leading-relaxed">
             <p>
-              Токен появится на сайте <span className="text-cyan-400 font-semibold">GRAM-TOKEN-START</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.
+              Токен появится в сети <span className="text-cyan-400 font-semibold">GRAM</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.После создания токена вы можете им управлять прямо сдесь (отказ от прав,сжигание,минт новых токенов и другое).
             </p>
             <p className="text-amber-400/90 font-medium">
-              При создании из кошелька уйдёт около 0,1 GRAM. Держите на нём не меньше 0,5 GRAM.
+              При создании из кошелька уйдёт около 0,1-0.5 GRAM. Держите на нём не меньше 0,5 GRAM.
             </p>
           </div>
         </div>
