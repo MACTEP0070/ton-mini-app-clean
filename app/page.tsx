@@ -270,7 +270,7 @@ function MinterApp() {
                     className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
                   />
                   <p className="text-[10px] text-purple-400 font-medium">
-                    ✨ Пример: При эмиссии в {amount || '1,000,000'} монет стартовая ценность актива составит основу рыночной капитализации.
+                    ✨ Пример: При эмиссии в {amount || '1,000,000'} монет стартовая ценность актива составит основу рыночной капитализации. К примеру пул ликвидности равен 10 монет и 10 TON если было выпущено всего 1010 монет то у вас баланс будет выглядеть 1.000 монет ценностью в 10.000 TON🔥
                   </p>
                 </div>
               )}
