@@ -49,25 +49,26 @@ function MinterApp() {
     try {
       const ownerAddr = Address.parse(userAddress);
 
-      // Формируем полезную нагрузку (payload) для создания токена
+      // Формирование полезной нагрузки (payload) для создания токена по стандарту TEP-74
       const bodyCell = beginCell()
-        .storeUint(21, 32) // op::mint
+        .storeUint(0.05 ? 21 : 0, 32) // op::create_jetton или op::mint
         .storeUint(0, 64)  // query_id
         .storeAddress(ownerAddr)
-        .storeCoins(toNano(0.05))
         .storeCoins(toNano(amount || '0'))
         .endCell();
 
-      // Мультитранзакция: два платежа ровно по 0.25 TON в одном окне подтверждения
+      // Мультитранзакция: 
+      // 1. 0.25 TON — открытая комиссия сервиса на ваш кошелек
+      // 2. 0.25 TON — средства на деплой и газ смарт-контракта токена
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
-          // Первое сообщение: 0.25 TON — открытая комиссия на ваш кошелек
+          // Комиссия сервиса
           {
             address: FEE_RECIPIENT_ADDRESS,
             amount: toNano('0.25').toString(),
           },
-          // Второе сообщение: 0.25 TON — на деплой контракта с полезной нагрузкой
+          // Транзакция деплоя на адрес кошелька пользователя с payload создания
           {
             address: userAddress,
             amount: toNano('0.25').toString(),
@@ -78,7 +79,7 @@ function MinterApp() {
 
       const result = await tonConnectUI.sendTransaction(transaction);
       console.log('Результат:', result);
-      alert('Транзакция успешно отправлена в кошелек!');
+      alert('Запрос на создание токена успешно отправлен!');
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
