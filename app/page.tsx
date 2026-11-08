@@ -87,13 +87,13 @@ function MinterApp() {
       <header className="w-full max-w-md text-center pt-2 pb-4">
         <div className="inline-flex items-center gap-2 mb-3 px-3.5 py-1.5 bg-gradient-to-r from-purple-500/10 via-cyan-500/10 to-pink-500/10 border border-purple-500/20 rounded-full text-xs font-bold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-pink-400 shadow-lg shadow-purple-500/5">
           <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
-          TON Market Launchpad
+          GRAM-TOKEN-STARS Market Launchpad
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">
-          Создание Jetton Актива
+          Создание Крипто-Актива
         </h1>
         <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
-          Мгновенный выпуск токенов по стандартам DeFi-маркетплейсов.
+          Мгновенный выпуск токенов по стандартам топовых DeFi-маркетплейсов.
         </p>
       </header>
 
