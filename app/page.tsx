@@ -22,7 +22,7 @@ function MinterApp() {
   const [decimals, setDecimals] = useState('9');
   const [loading, setLoading] = useState(false);
 
-  // Ваш кошелек для получения полной оплаты (0.5 GRAM)
+  // Ваш кошелек для получения оплаты (0.5 GRAM)
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
   const formatAddress = (addr: string) => {
@@ -52,16 +52,16 @@ function MinterApp() {
 
     setLoading(true);
     try {
-      // Формируем структурированный комментарий для заказа (включает ваши комиссионные и деплой)
-      // Формат: CREATE:Имя:Тикер:Эмиссия:АдресСоздателя
-      const commentText = `CREATE:${name}:${symbol}:${amount}:${userAddress}`;
+      // Четкий формат с разделителями (включая картинку и описание)
+      // Формат: CREATE | Name: ... | Symbol: ... | Supply: ... | Logo: ... | Owner: ...
+      const safeImage = imageUri ? imageUri : 'NO_IMAGE';
+      const commentText = `CREATE | Name:${name} | Symbol:${symbol} | Supply:${amount} | Logo:${safeImage} | Owner:${userAddress}`;
 
       const commentCell = beginCell()
-        .storeUint(0, 32) // Сигнализирует о текстовом сообщении/комментарии
+        .storeUint(0, 32) // Текстовый комментарий
         .storeStringTail(commentText)
         .endCell();
 
-      // Единая транзакция ровно на 0.5 GRAM на ваш кошелек без возвратов
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
@@ -75,7 +75,7 @@ function MinterApp() {
 
       const result = await tonConnectUI.sendTransaction(transaction);
       console.log('Транзакция отправлена:', result);
-      alert('Заявка на создание токена и оплата успешно отправлены!');
+      alert('Оплата прошла успешно! Ожидайте выпуск токена.');
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
@@ -134,10 +134,11 @@ function MinterApp() {
             {/* Изображение (URL) */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Ссылка на логотип (Image URI)
+                Ссылка на логотип (Image URI) <span className="text-red-400">*</span>
               </label>
               <input
                 type="url"
+                required
                 placeholder="https://site.com/logo.png"
                 value={imageUri}
                 onChange={(e) => setImageUri(e.target.value)}
@@ -200,7 +201,7 @@ function MinterApp() {
                   Подключить кошелек
                 </button>
               ) : (
-                <div className="space-y-3">
+                <div className="space-8">
                   <button
                     type="submit"
                     disabled={loading}
@@ -211,7 +212,7 @@ function MinterApp() {
                   <button
                     type="button"
                     onClick={handleConnectWallet}
-                    className="w-full py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-400 text-xs rounded-xl transition"
+                    className="w-full py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-400 text-xs rounded-xl transition mt-2"
                   >
                     Подключен: {formatAddress(userAddress)} (Отключить)
                   </button>
