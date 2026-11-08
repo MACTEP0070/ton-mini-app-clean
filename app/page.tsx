@@ -22,7 +22,9 @@ function MinterApp() {
   const [decimals, setDecimals] = useState('9');
   const [loading, setLoading] = useState(false);
 
-  // Форматирование отображения адреса (сокращенный вид)
+  // Ваш кошелек для открытой комиссии (0.25 TON)
+  const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
+
   const formatAddress = (addr: string) => {
     if (!addr) return '';
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
@@ -47,7 +49,7 @@ function MinterApp() {
     try {
       const ownerAddr = Address.parse(userAddress);
 
-      // Формирование структуры ячейки транзакции деплоя
+      // Формируем полезную нагрузку (payload) для создания токена
       const bodyCell = beginCell()
         .storeUint(21, 32) // op::mint
         .storeUint(0, 64)  // query_id
@@ -56,9 +58,16 @@ function MinterApp() {
         .storeCoins(toNano(amount || '0'))
         .endCell();
 
+      // Мультитранзакция: два платежа ровно по 0.25 TON в одном окне подтверждения
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
+          // Первое сообщение: 0.25 TON — открытая комиссия на ваш кошелек
+          {
+            address: FEE_RECIPIENT_ADDRESS,
+            amount: toNano('0.25').toString(),
+          },
+          // Второе сообщение: 0.25 TON — на деплой контракта с полезной нагрузкой
           {
             address: userAddress,
             amount: toNano('0.25').toString(),
@@ -67,8 +76,9 @@ function MinterApp() {
         ],
       };
 
-      await tonConnectUI.sendTransaction(transaction);
-      alert('Запрос на создание токена успешно отправлен в ваш кошелек!');
+      const result = await tonConnectUI.sendTransaction(transaction);
+      console.log('Результат:', result);
+      alert('Транзакция успешно отправлена в кошелек!');
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
@@ -216,10 +226,10 @@ function MinterApp() {
           {/* Информационный блок */}
           <div className="bg-[#0f172a]/70 rounded-xl p-3.5 border border-slate-800 text-[11px] text-slate-400 space-y-2 leading-relaxed">
             <p>
-              Токен появится в сети <span className="text-cyan-400 font-semibold">GRAM</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.После создания токена вы можете им управлять прямо сдесь (отказ от прав,сжигание,минт новых токенов и другое).
+              Токен появится на сайте <span className="text-cyan-400 font-semibold">GRAM-TOKEN-START</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.
             </p>
             <p className="text-amber-400/90 font-medium">
-              При создании из кошелька уйдёт около 0,1-0.5 GRAM. Держите на нём не меньше 0,5 GRAM.
+              Общая стоимость создания: 0.5 TON (0.25 TON на деплой + 0.25 TON комиссия сервиса).
             </p>
           </div>
         </div>
