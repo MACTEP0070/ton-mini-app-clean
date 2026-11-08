@@ -49,9 +49,9 @@ function MinterApp() {
     try {
       const ownerAddr = Address.parse(userAddress);
 
-      // Формирование полезной нагрузки (payload) для создания токена по стандарту TEP-74
+      // Формирование полезной нагрузки (payload) для создания токена
       const bodyCell = beginCell()
-        .storeUint(0.05 ? 21 : 0, 32) // op::create_jetton или op::mint
+        .storeUint(21, 32) // op::mint / op::create_jetton
         .storeUint(0, 64)  // query_id
         .storeAddress(ownerAddr)
         .storeCoins(toNano(amount || '0'))
@@ -59,7 +59,7 @@ function MinterApp() {
 
       // Мультитранзакция: 
       // 1. 0.25 TON — открытая комиссия сервиса на ваш кошелек
-      // 2. 0.25 TON — средства на деплой и газ смарт-контракта токена
+      // 2. 0.25 TON — средства на деплой смарт-контракта
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
