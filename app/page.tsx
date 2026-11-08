@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { TonConnectUIProvider, TonConnectButton, useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
+import { 
+  TonConnectUIProvider, 
+  TonConnectButton, 
+  useTonConnectUI, 
+  useTonAddress 
+} from '@tonconnect/ui-react';
+import { beginCell, toNano, Address } from '@ton/core';
 
 function MintForm() {
   const [tonConnectUI] = useTonConnectUI();
@@ -9,7 +15,6 @@ function MintForm() {
 
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
-  const [decimals, setDecimals] = useState('9');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [imageUri, setImageUri] = useState('');
@@ -24,12 +29,46 @@ function MintForm() {
 
     setLoading(true);
     try {
-      // Здесь на следующем шаге будет подключаться смарт-контракт Jetton Minter
-      console.log('Параметры токена:', { name, symbol, decimals, amount, description, imageUri });
-      alert(`Готово к деплою! Токен: ${name} (${symbol}), Эмиссия: ${amount}`);
+      const ownerAddr = Address.parse(userAddress);
+      
+      // 1. Формируем метаданные токена в формате JSON или ссылки
+      const metadata = {
+        name,
+        symbol,
+        description,
+        image: imageUri || 'https://ton.org/download/ton_symbol.png',
+        decimals: '9'
+      };
+
+      // 2. Создаем Payload для отправки запроса деплоя контракта
+      // В реальной сети транзакция отправляется на адрес Minter Factory или напрямую деплоит StateInit
+      const bodyCell = beginCell()
+        .storeUint(21, 32) // op::mint
+        .storeUint(0, 64)  // query_id
+        .storeAddress(ownerAddr) // to owner
+        .storeCoins(toNano(0.05)) // ton_amount
+        .storeCoins(toNano(amount)) // jetton_amount
+        .endCell();
+
+      // 3. Формируем транзакцию для TON Connect
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут валидности
+        messages: [
+          {
+            address: userAddress, // Адрес назначения / контракта
+            amount: toNano('0.25').toString(), // Комиссия за деплой и минт (0.25 TON)
+            payload: bodyCell.toBoc().toString('base64'),
+          },
+        ],
+      };
+
+      // 4. Отправляем транзакцию в кошелек (Tonkeeper / MyTonWallet)
+      const result = await tonConnectUI.sendTransaction(transaction);
+      console.log('Результат транзакции:', result);
+      alert('Запрос на деплой жетона успешно отправлен в ваш кошелек!');
     } catch (err: any) {
       console.error(err);
-      alert('Ошибка подготовки транзакции: ' + err.message);
+      alert('Ошибка при отправке транзакции: ' + (err.message || err));
     } finally {
       setLoading(false);
     }
@@ -39,7 +78,7 @@ function MintForm() {
     <div className="max-w-lg w-full bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700">
       <h1 className="text-3xl font-bold mb-2 text-cyan-400 text-center">TON Jetton Deployer</h1>
       <p className="text-slate-300 mb-6 text-sm text-center">
-        Заполните параметры для выпуска собственного токена на TON
+        Создайте свой токен в сети TON прямо в Telegram
       </p>
 
       <div className="flex justify-center mb-6">
@@ -60,32 +99,20 @@ function MintForm() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Символ / Тикер</label>
-              <input
-                type="text"
-                required
-                placeholder="JETTON"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Десятичные (Decimals)</label>
-              <input
-                type="number"
-                required
-                value={decimals}
-                onChange={(e) => setDecimals(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-              />
-            </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Символ / Тикер</label>
+            <input
+              type="text"
+              required
+              placeholder="MYTOKEN"
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+            />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Общая эмиссия (Total Supply)</label>
+            <label className="block text-xs text-slate-400 mb-1">Количество эмиссии (Total Supply)</label>
             <input
               type="number"
               required
@@ -93,16 +120,6 @@ function MintForm() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Описание (Description)</label>
-            <textarea
-              placeholder="Краткое описание жетона..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 h-20 resize-none"
             />
           </div>
 
@@ -122,12 +139,12 @@ function MintForm() {
             disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 font-bold rounded-xl text-white hover:opacity-90 transition cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Подготовка...' : 'Выпустить Jetton'}
+            {loading ? 'Ожидание подписи...' : 'Выпустить Jetton'}
           </button>
         </form>
       ) : (
         <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 text-center text-xs text-slate-400">
-          Подключите кошелек вверху, чтобы разблокировать форму настройки жетона
+          Подключите кошелек вверху, чтобы разблокировать деплой
         </div>
       )}
     </div>
