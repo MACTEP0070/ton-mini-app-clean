@@ -7,7 +7,7 @@ import {
   useTonAddress,
   useTonWallet,
 } from '@tonconnect/ui-react';
-import { beginCell, toNano, Address } from '@ton/core';
+import { beginCell, toNano } from '@ton/core';
 
 function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
@@ -22,11 +22,8 @@ function MinterApp() {
   const [decimals, setDecimals] = useState('9');
   const [loading, setLoading] = useState(false);
 
-  // 1. Ваш кошелек для получения открытой комиссии 0.25 GRAM
+  // Ваш кошелек для получения полной оплаты (0.5 GRAM)
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
-  
-  // 2. Официальный адрес контракта фабрики (деплоера) Jetton Минтеров в сети TON
-  const FACTORY_CONTRACT_ADDRESS = 'EQB-MinterFactoryForJettonsDeploy0000000000000000';
 
   const formatAddress = (addr: string) => {
     if (!addr) return '';
@@ -48,39 +45,37 @@ function MinterApp() {
       return;
     }
 
+    if (!name || !symbol || !amount) {
+      alert('Заполните обязательные поля!');
+      return;
+    }
+
     setLoading(true);
     try {
-      const ownerAddr = Address.parse(userAddress);
+      // Формируем структурированный комментарий для заказа (включает ваши комиссионные и деплой)
+      // Формат: CREATE:Имя:Тикер:Эмиссия:АдресСоздателя
+      const commentText = `CREATE:${name}:${symbol}:${amount}:${userAddress}`;
 
-      // Формирование структуры ячейки (payload) для деплоя Jetton
-      const bodyCell = beginCell()
-        .storeUint(21, 32) // op::mint / op::deploy
-        .storeUint(0, 64)  // query_id
-        .storeAddress(ownerAddr)
-        .storeCoins(toNano(amount || '0'))
+      const commentCell = beginCell()
+        .storeUint(0, 32) // Сигнализирует о текстовом сообщении/комментарии
+        .storeStringTail(commentText)
         .endCell();
 
-      // Мультитранзакция из двух сообщений по 0.25 GRAM:
-      // - 0.25 GRAM уходит на ваш кошелек в качестве комиссии
-      // - 0.25 GRAM уходит на смарт-контракт фабрики для деплоя токена
+      // Единая транзакция ровно на 0.5 GRAM на ваш кошелек без возвратов
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
             address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano('0.25').toString(),
-          },
-          {
-            address: FACTORY_CONTRACT_ADDRESS,
-            amount: toNano('0.25').toString(),
-            payload: bodyCell.toBoc().toString('base64'),
+            amount: toNano('0.5').toString(),
+            payload: commentCell.toBoc().toString('base64'),
           },
         ],
       };
 
       const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Результат:', result);
-      alert('Запрос на создание токена успешно отправлен на смарт-контракт фабрики!');
+      console.log('Транзакция отправлена:', result);
+      alert('Заявка на создание токена и оплата успешно отправлены!');
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
@@ -211,7 +206,7 @@ function MinterApp() {
                     disabled={loading}
                     className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-sm rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
                   >
-                    {loading ? 'Создание...' : 'Создать токен'}
+                    {loading ? 'Обработка...' : 'Создать токен (0.5 GRAM)'}
                   </button>
                   <button
                     type="button"
@@ -231,7 +226,7 @@ function MinterApp() {
               Токен появится на сайте <span className="text-cyan-400 font-semibold">GRAM-TOKEN-START</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.
             </p>
             <p className="text-amber-400/90 font-medium">
-              Общая стоимость создания: 0.5 GRAM (0.25 GRAM на деплой через фабрику + 0.25 GRAM комиссия сервиса).
+              Стоимость создания: 0.5 GRAM (включая комиссию сервиса и деплой).
             </p>
           </div>
         </div>
