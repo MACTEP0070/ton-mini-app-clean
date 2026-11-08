@@ -18,12 +18,12 @@ function MinterApp() {
   const [symbol, setSymbol] = useState('');
   const [description, setDescription] = useState('');
   const [imageUri, setImageUri] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState('1000000'); // По умолчанию 1 млн для примера
   const [decimals, setDecimals] = useState('9');
   
-  // Новые состояния для пула ликвидности
-  const [addLiquidity, setAddLiquidity] = useState(false);
-  const [liquidityAmount, setLiquidityAmount] = useState('10'); // По умолчанию 10 TON/GRAM
+  // Состояния для пула ликвидности
+  const [addLiquidity, setAddLiquidity] = useState(true); // По умолчанию включено для удобства
+  const [liquidityAmount, setLiquidityAmount] = useState('1000'); // Например, 1000 TON
 
   const [loading, setLoading] = useState(false);
 
@@ -56,12 +56,10 @@ function MinterApp() {
 
     setLoading(true);
     try {
-      // Базовая стоимость создания (0.5 GRAM) + сумма ликвидности, если она выбрана
       const baseFee = 0.5;
       const liqVal = addLiquidity ? parseFloat(liquidityAmount || '0') : 0;
       const totalCost = baseFee + liqVal;
 
-      // Формируем расширенный комментарий с параметрами ликвидности для вашего парсера
       const commentText = `CREATE | Name:${name} | Symbol:${symbol} | Supply:${amount} | Logo:${imageUri} | LiqPool:${addLiquidity ? 'YES' : 'NO'} | LiqAmount:${liqVal} | Owner:${userAddress}`;
 
       const commentCell = beginCell()
@@ -74,7 +72,7 @@ function MinterApp() {
         messages: [
           {
             address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano(totalCost.toString()).toString(), // Сумма с учетом ликвидности
+            amount: toNano(totalCost.toString()).toString(),
             payload: commentCell.toBoc().toString('base64'),
           },
         ],
@@ -91,7 +89,6 @@ function MinterApp() {
     }
   };
 
-  // Расчет общей суммы для кнопки
   const totalDisplayCost = 0.5 + (addLiquidity ? parseFloat(liquidityAmount || '0') : 0);
 
   return (
@@ -220,7 +217,7 @@ function MinterApp() {
               </div>
             </div>
 
-            {/* НОВЫЙ БЛОК: Пул ликвидности DEX */}
+            {/* БЛОК: Пул ликвидности DEX с подробным объяснением */}
             <div className="space-y-3 bg-slate-950/60 p-3.5 rounded-2xl border border-cyan-500/30">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 cursor-pointer select-none">
@@ -230,16 +227,23 @@ function MinterApp() {
                     onChange={(e) => setAddLiquidity(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900"
                   />
-                  💧 Добавить в пул ликвидности
+                  💧 Запуск пула ликвидности (DEX)
                 </label>
                 <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/20">
-                  DeFi Ready
+                  Рекомендуется
                 </span>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Добавление ликвидности необходимо для того, чтобы ваш токен начал реально торговаться на децентрализованных площадках (DEX) вроде DeDust и STON.fi.
-              </p>
+              {/* Понятное объяснение для пользователя */}
+              <div className="bg-cyan-950/20 border border-cyan-500/20 rounded-xl p-2.5 text-[11px] text-slate-300 space-y-1.5 leading-relaxed">
+                <p className="text-cyan-300 font-semibold">🚀 Как это работает:</p>
+                <p>
+                  Часть ваших токенов связывается с выбранной суммой TON для создания пула на DeDust / STON.fi (соотношение: <b>1 токен = 1 TON</b>).
+                </p>
+                <p>
+                  Остальная эмиссия поступает на ваш кошелек. Ликвидность <b>надежно блокируется смарт-контрактом</b>, гарантируя инвесторам безопасность торгов.
+                </p>
+              </div>
 
               {addLiquidity && (
                 <div className="pt-2 border-t border-slate-800/80 space-y-2 animate-fadeIn">
@@ -256,11 +260,6 @@ function MinterApp() {
                     onChange={(e) => setLiquidityAmount(e.target.value)}
                     className="w-full accent-cyan-400 bg-slate-900 cursor-pointer"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-500">
-                    <span>1 TON</span>
-                    <span>50,000 TON</span>
-                    <span>100,000 TON</span>
-                  </div>
                   <input
                     type="number"
                     min="1"
@@ -270,6 +269,9 @@ function MinterApp() {
                     placeholder="Введите сумму от 1 до 100000"
                     className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
                   />
+                  <p className="text-[10px] text-purple-400 font-medium">
+                    ✨ Пример: При эмиссии в {amount || '1,000,000'} монет стартовая ценность актива составит основу рыночной капитализации.
+                  </p>
                 </div>
               )}
             </div>
