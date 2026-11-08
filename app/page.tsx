@@ -1,152 +1,247 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  TonConnectUIProvider, 
-  TonConnectButton, 
-  useTonConnectUI, 
-  useTonAddress 
+import {
+  TonConnectUIProvider,
+  useTonConnectUI,
+  useTonAddress,
+  useTonWallet,
 } from '@tonconnect/ui-react';
 import { beginCell, toNano, Address } from '@ton/core';
 
-function MintForm() {
+function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
+  const wallet = useTonWallet();
 
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
-  const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [imageUri, setImageUri] = useState('');
+  const [amount, setAmount] = useState('');
+  const [decimals, setDecimals] = useState('9');
   const [loading, setLoading] = useState(false);
+
+  // Форматирование отображения адреса (сокращенный вид)
+  const formatAddress = (addr: string) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+  };
+
+  const handleConnectWallet = () => {
+    if (wallet) {
+      tonConnectUI.disconnect();
+    } else {
+      tonConnectUI.openModal();
+    }
+  };
 
   const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userAddress) {
-      alert('Пожалуйста, сначала подключите кошелек TON!');
+      alert('Пожалуйста, сначала подключите кошелек!');
       return;
     }
 
     setLoading(true);
     try {
       const ownerAddr = Address.parse(userAddress);
-      
-      // 1. Формируем метаданные токена в формате JSON или ссылки
-      const metadata = {
-        name,
-        symbol,
-        description,
-        image: imageUri || 'https://ton.org/download/ton_symbol.png',
-        decimals: '9'
-      };
 
-      // 2. Создаем Payload для отправки запроса деплоя контракта
-      // В реальной сети транзакция отправляется на адрес Minter Factory или напрямую деплоит StateInit
+      // Формирование структуры ячейки транзакции деплоя
       const bodyCell = beginCell()
         .storeUint(21, 32) // op::mint
         .storeUint(0, 64)  // query_id
-        .storeAddress(ownerAddr) // to owner
-        .storeCoins(toNano(0.05)) // ton_amount
-        .storeCoins(toNano(amount)) // jetton_amount
+        .storeAddress(ownerAddr)
+        .storeCoins(toNano(0.05))
+        .storeCoins(toNano(amount || '0'))
         .endCell();
 
-      // 3. Формируем транзакцию для TON Connect
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут валидности
+        validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
-            address: userAddress, // Адрес назначения / контракта
-            amount: toNano('0.25').toString(), // Комиссия за деплой и минт (0.25 TON)
+            address: userAddress,
+            amount: toNano('0.25').toString(),
             payload: bodyCell.toBoc().toString('base64'),
           },
         ],
       };
 
-      // 4. Отправляем транзакцию в кошелек (Tonkeeper / MyTonWallet)
-      const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Результат транзакции:', result);
-      alert('Запрос на деплой жетона успешно отправлен в ваш кошелек!');
+      await tonConnectUI.sendTransaction(transaction);
+      alert('Запрос на создание токена успешно отправлен в ваш кошелек!');
     } catch (err: any) {
       console.error(err);
-      alert('Ошибка при отправке транзакции: ' + (err.message || err));
+      alert('Ошибка при отправке: ' + (err.message || err));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-lg w-full bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700">
-      <h1 className="text-3xl font-bold mb-2 text-cyan-400 text-center">TON Jetton Deployer</h1>
-      <p className="text-slate-300 mb-6 text-sm text-center">
-        Создайте свой токен в сети TON прямо в Telegram
-      </p>
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col items-center justify-between font-sans pb-8">
+      {/* Шапка / Заголовок */}
+      <header className="w-full max-w-md px-4 pt-6 pb-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
+          Выпустите свой первый токен
+        </h1>
+        <p className="text-xs text-slate-400 leading-relaxed px-2">
+          Заполните форму ниже, чтобы создать токен на базе стандарта Jetton. Процесс занимает меньше минуты.
+        </p>
+      </header>
 
-      <div className="flex justify-center mb-6">
-        <TonConnectButton />
-      </div>
+      {/* Основной контейнер формы */}
+      <main className="w-full max-w-md px-4 my-4 flex-1">
+        <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl p-5 shadow-2xl space-y-4">
+          <form onSubmit={handleMint} className="space-y-4">
+            
+            {/* Название токена */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Название токена <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Например: Gram Gold"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+              />
+            </div>
 
-      {userAddress ? (
-        <form onSubmit={handleMint} className="space-y-4">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Название токена (Name)</label>
-            <input
-              type="text"
-              required
-              placeholder="например, My Super Jetton"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-            />
+            {/* Символ / Тикер */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Символ (Тикер) <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Например: GOLD"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+              />
+            </div>
+
+            {/* Изображение (URL) */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Ссылка на логотип (Image URI)
+              </label>
+              <input
+                type="url"
+                placeholder="https://site.com/logo.png"
+                value={imageUri}
+                onChange={(e) => setImageUri(e.target.value)}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+              />
+            </div>
+
+            {/* Описание */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Описание
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Опишите назначение и особенности вашего жетона..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition resize-none"
+              />
+            </div>
+
+            {/* Количество эмиссии и Decimals в сетке */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Эмиссия <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="1000000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Decimals
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={decimals}
+                  onChange={(e) => setDecimals(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Динамическая кнопка авторизации / выпуска */}
+            <div className="pt-2">
+              {!userAddress ? (
+                <button
+                  type="button"
+                  onClick={handleConnectWallet}
+                  className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
+                >
+                  Подключить кошелек
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-sm rounded-xl transition shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
+                  >
+                    {loading ? 'Создание...' : 'Создать токен'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConnectWallet}
+                    className="w-full py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-400 text-xs rounded-xl transition"
+                  >
+                    Подключен: {formatAddress(userAddress)} (Отключить)
+                  </button>
+                </div>
+              )}
+            </div>
+          </form>
+
+          {/* Информационный блок над футером */}
+          <div className="bg-[#0f172a]/70 rounded-xl p-3.5 border border-slate-800 text-[11px] text-slate-400 space-y-2 leading-relaxed">
+            <p>
+              Токен появится на сайте <span className="text-cyan-400 font-semibold">GRAM-TOKEN-START</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.
+            </p>
+            <p className="text-amber-400/90 font-medium">
+              При создании из кошелька уйдёт около 0,15 GRAM. Держите на нём не меньше 0,2 GRAM.
+            </p>
           </div>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Символ / Тикер</label>
-            <input
-              type="text"
-              required
-              placeholder="MYTOKEN"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Количество эмиссии (Total Supply)</label>
-            <input
-              type="number"
-              required
-              placeholder="1000000"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Ссылка на логотип (Image URL)</label>
-            <input
-              type="url"
-              placeholder="https://example.com/logo.png"
-              value={imageUri}
-              onChange={(e) => setImageUri(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 font-bold rounded-xl text-white hover:opacity-90 transition cursor-pointer disabled:opacity-50"
-          >
-            {loading ? 'Ожидание подписи...' : 'Выпустить Jetton'}
-          </button>
-        </form>
-      ) : (
-        <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 text-center text-xs text-slate-400">
-          Подключите кошелек вверху, чтобы разблокировать деплой
         </div>
-      )}
+      </main>
+
+      {/* Юридический подвал / Дисклеймер */}
+      <footer className="w-full max-w-md px-4 mt-4">
+        <div className="bg-[#1e293b]/40 border border-slate-800 rounded-xl p-4 text-[10px] text-slate-500 leading-normal space-y-1.5">
+          <div className="font-bold text-slate-400 uppercase tracking-wider text-[9px]">
+            DYOR.io Важное предупреждение
+          </div>
+          <p>
+            Весь контент, предоставленный на нашем сайте, гиперссылках, связанных приложениях, форумах, блогах, аккаунтах в социальных сетях и других платформах (&quot;Сайт&quot;), предназначен исключительно для общей информации и получён из различных источников. Мы не даем никаких гарантий относительно нашего контента и услуг, включая, но не ограничиваясь, точностью, безопасностью и своевременностью.
+          </p>
+          <p>
+            Никакая часть контента и услуг, предоставляемых нами, не является финансовым, юридическим или любым другим видом консультации, предназначенной для вашего конкретного использования в каких-либо целях. <span className="text-slate-400 font-semibold">GRAM-TOKEN-START</span> не имеет лицензий от финансовых регулирующих органов и не занимается ценными бумагами и не продвигает их.
+          </p>
+          <p>
+            Любое использование или полагание на наш контент и услуги осуществляется исключительно на ваш страх и риск. Вы должны проводить собственное исследование, анализ, проверку и анализировать наш контент и услуги перед тем, как полагаться на них или использовать их. Это соответствует нашему основному принципу: <span className="text-slate-400 font-semibold">GRAM-TOKEN-START</span>.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -156,9 +251,7 @@ export default function Home() {
 
   return (
     <TonConnectUIProvider manifestUrl={manifestUrl}>
-      <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-slate-900 text-white font-sans">
-        <MintForm />
-      </main>
+      <MinterApp />
     </TonConnectUIProvider>
   );
 }
