@@ -23,7 +23,7 @@ function MinterApp() {
   
   // Состояния для пула ликвидности
   const [addLiquidity, setAddLiquidity] = useState(true); // По умолчанию включено для удобства
-  const [liquidityAmount, setLiquidityAmount] = useState('1000'); // Например, 1000 TON
+  const [liquidityAmount, setLiquidityAmount] = useState('1'); // Например, 1 TON
 
   const [loading, setLoading] = useState(false);
 
