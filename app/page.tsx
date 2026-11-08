@@ -45,7 +45,7 @@ function MinterApp() {
     }
 
     if (!name || !symbol || !amount || !imageUri) {
-      alert('Заполните все обязательные поля, включая ссылку на логотип!');
+      alert('Заполните все обязательные поля!');
       return;
     }
 
@@ -81,31 +81,41 @@ function MinterApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0b0f19] via-[#0f172a] to-[#090d16] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-6 selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-6 selection:bg-pink-500 selection:text-white">
       
-      {/* Шапка / Логотип проекта */}
+      {/* Шапка / Маркет-хедер */}
       <header className="w-full max-w-md text-center pt-2 pb-4">
-        <div className="inline-block mb-3 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-cyan-400 text-xs font-semibold tracking-wide uppercase">
-          TON Minter & Launchpad
+        <div className="inline-flex items-center gap-2 mb-3 px-3.5 py-1.5 bg-gradient-to-r from-purple-500/10 via-cyan-500/10 to-pink-500/10 border border-purple-500/20 rounded-full text-xs font-bold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-pink-400 shadow-lg shadow-purple-500/5">
+          <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
+          TON Market Launchpad
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">
-          Создание Jetton Токена
+          Создание Jetton Актива
         </h1>
         <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
-          Выпустите собственный цифровой актив в сети TON за пару кликов.
+          Мгновенный выпуск токенов по стандартам DeFi-маркетплейсов.
         </p>
       </header>
 
-      {/* Основная форма */}
+      {/* Основная форма с карточкой Market-стиля */}
       <main className="w-full max-w-md my-2 flex-1">
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-5 shadow-2xl shadow-cyan-950/20 space-y-4">
-          <form onSubmit={handleMint} className="space-y-4">
+        <div className="relative bg-gradient-to-b from-slate-900/90 to-slate-950/90 backdrop-blur-2xl border border-slate-800/80 rounded-3xl p-5 shadow-2xl shadow-cyan-950/30 space-y-4 overflow-hidden">
+          
+            {/* Декоративное световое свечение сверху */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <form onSubmit={handleMint} className="relative z-10 space-y-4">
             
             {/* Блок: Основная информация */}
-            <div className="space-y-3">
+            <div className="space-y-3 bg-slate-950/40 p-3.5 rounded-2xl border border-slate-800/50">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-1.5">
+                <span>⚡</span> Основные параметры
+              </div>
+              
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Название токена <span className="text-cyan-400">*</span>
+                  Название токена <span className="text-pink-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -113,13 +123,13 @@ function MinterApp() {
                   placeholder="Например: Gram Gold"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Символ (Тикер) <span className="text-cyan-400">*</span>
+                  Символ (Тикер) <span className="text-pink-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -127,16 +137,20 @@ function MinterApp() {
                   placeholder="Например: GOLD"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all uppercase"
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all uppercase font-mono tracking-wider"
                 />
               </div>
             </div>
 
             {/* Блок: Медиа и Описание */}
-            <div className="space-y-3 pt-1 border-t border-slate-800/60">
-              <div className="pt-2">
+            <div className="space-y-3 bg-slate-950/40 p-3.5 rounded-2xl border border-slate-800/50">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-pink-400 mb-2 flex items-center gap-1.5">
+                <span>🎨</span> Брендинг и медиа
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Ссылка на логотип (Image URI) <span className="text-cyan-400">*</span>
+                  Ссылка на логотип (Image URI) <span className="text-pink-500">*</span>
                 </label>
                 <input
                   type="url"
@@ -144,7 +158,7 @@ function MinterApp() {
                   placeholder="https://example.com/logo.png"
                   value={imageUri}
                   onChange={(e) => setImageUri(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all"
                 />
               </div>
 
@@ -154,19 +168,23 @@ function MinterApp() {
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Краткая информация о вашем токене..."
+                  placeholder="Расскажите о ценности токена..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all resize-none"
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all resize-none"
                 />
               </div>
             </div>
 
-            {/* Блок: Эмиссия и параметры */}
-            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-800/60">
-              <div className="pt-2">
+            {/* Блок: Токеномика */}
+            <div className="grid grid-cols-2 gap-3 bg-slate-950/40 p-3.5 rounded-2xl border border-slate-800/50">
+              <div className="col-span-2 text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-1 flex items-center gap-1.5">
+                <span>📈</span> Токеномика
+              </div>
+              
+              <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Эмиссия <span className="text-cyan-400">*</span>
+                  Эмиссия <span className="text-pink-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -174,11 +192,11 @@ function MinterApp() {
                   placeholder="1000000"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-mono"
                 />
               </div>
 
-              <div className="pt-2">
+              <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
                   Decimals
                 </label>
@@ -187,18 +205,18 @@ function MinterApp() {
                   required
                   value={decimals}
                   onChange={(e) => setDecimals(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-mono"
                 />
               </div>
             </div>
 
-            {/* Кнопки управления и подключения */}
-            <div className="pt-3">
+            {/* Кнопки управления */}
+            <div className="pt-2">
               {!userAddress ? (
                 <button
                   type="button"
                   onClick={handleConnectWallet}
-                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm rounded-2xl transition-all shadow-lg shadow-cyan-500/25 active:scale-[0.98]"
+                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:opacity-90 text-white font-bold text-sm rounded-2xl transition-all shadow-lg shadow-purple-500/25 active:scale-[0.98]"
                 >
                   Подключить кошелек
                 </button>
@@ -207,14 +225,14 @@ function MinterApp() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/30 active:scale-[0.98]"
+                    className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/30 active:scale-[0.98]"
                   >
                     {loading ? 'Создание заявки...' : 'Создать токен (0.5 GRAM)'}
                   </button>
                   <button
                     type="button"
                     onClick={handleConnectWallet}
-                    className="w-full py-2 bg-slate-950/40 border border-slate-800 hover:bg-slate-800/80 text-slate-400 text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                    className="w-full py-2 bg-slate-950/60 border border-slate-800 hover:bg-slate-900 text-slate-400 text-xs rounded-xl transition-all flex items-center justify-center gap-2"
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     Кошелек: {formatAddress(userAddress)} (Сменить)
@@ -224,20 +242,20 @@ function MinterApp() {
             </div>
           </form>
 
-          {/* Информационный футер карточки */}
-          <div className="bg-slate-950/50 rounded-2xl p-3 border border-slate-800/60 text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
-            <p>
-              ✨ Токен будет выпущен через платформу <span className="text-cyan-400 font-medium">GRAM-TOKEN-START</span>.
+          {/* Информационный маркет-футер */}
+          <div className="relative z-10 bg-slate-950/60 rounded-2xl p-3 border border-slate-800/80 text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
+            <p className="flex items-center gap-1.5">
+              <span className="text-cyan-400">🌐</span> Платформа <span className="text-white font-semibold">GRAM-TOKEN-START</span>
             </p>
-            <p className="text-amber-400/90 font-medium">
-              ⚡️ Фиксированная стоимость выпуска: 0.5 GRAM.
+            <p className="flex items-center gap-1.5 text-amber-400/90 font-medium">
+              <span>💎</span> Стоимость выпуска: <span className="font-bold">0.5 GRAM</span> (всё включено)
             </p>
           </div>
         </div>
       </main>
 
       <footer className="w-full max-w-md text-center pt-3 text-[10px] text-slate-500">
-        TON Ecosystem Mini App • Secure & Fast
+        TON Market Launchpad • Verified Smart Contracts
       </footer>
     </div>
   );
