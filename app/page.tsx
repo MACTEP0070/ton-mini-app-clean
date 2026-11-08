@@ -94,6 +94,7 @@ function MinterApp() {
         </h1>
         <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
           Мгновенный выпуск токенов по стандартам топовых DeFi-маркетплейсов.
+          После создания токен будет отправлен вам на кошелёк 👛
         </p>
       </header>
 
