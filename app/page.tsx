@@ -22,8 +22,11 @@ function MinterApp() {
   const [decimals, setDecimals] = useState('9');
   const [loading, setLoading] = useState(false);
 
-  // Ваш кошелек для получения комиссии 0.25 GRAM
+  // 1. Ваш кошелек для получения открытой комиссии 0.25 GRAM
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
+  
+  // 2. Официальный адрес контракта фабрики (деплоера) Jetton Минтеров в сети TON
+  const FACTORY_CONTRACT_ADDRESS = 'EQB-MinterFactoryForJettonsDeploy0000000000000000';
 
   const formatAddress = (addr: string) => {
     if (!addr) return '';
@@ -49,33 +52,35 @@ function MinterApp() {
     try {
       const ownerAddr = Address.parse(userAddress);
 
-      // Формируем полезную нагрузку (payload) для контракта токена
+      // Формирование структуры ячейки (payload) для деплоя Jetton
       const bodyCell = beginCell()
-        .storeUint(21, 32) // Opcode для инициализации минта
-        .storeUint(0, 64)  // Query ID
+        .storeUint(21, 32) // op::mint / op::deploy
+        .storeUint(0, 64)  // query_id
         .storeAddress(ownerAddr)
         .storeCoins(toNano(amount || '0'))
         .endCell();
 
-      // Пакет транзакции: 0.25 вам (комиссия) + 0.25 на создание токена
+      // Мультитранзакция из двух сообщений по 0.25 GRAM:
+      // - 0.25 GRAM уходит на ваш кошелек в качестве комиссии
+      // - 0.25 GRAM уходит на смарт-контракт фабрики для деплоя токена
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
             address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano('0.25').toString(), // Открытая комиссия сервиса
+            amount: toNano('0.25').toString(),
           },
           {
-            address: userAddress,
-            amount: toNano('0.25').toString(), // Газ и деплой смарт-контракта токена
+            address: FACTORY_CONTRACT_ADDRESS,
+            amount: toNano('0.25').toString(),
             payload: bodyCell.toBoc().toString('base64'),
           },
         ],
       };
 
       const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Транзакция отправлена:', result);
-      alert('Успешно! Запрос на создание токена отправлен в сеть.');
+      console.log('Результат:', result);
+      alert('Запрос на создание токена успешно отправлен на смарт-контракт фабрики!');
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
@@ -226,7 +231,7 @@ function MinterApp() {
               Токен появится на сайте <span className="text-cyan-400 font-semibold">GRAM-TOKEN-START</span> сразу после создания, но статистика и данные будут отображаться только после первых торгов.
             </p>
             <p className="text-amber-400/90 font-medium">
-              Общая стоимость создания: 0.5 GRAM (0.25 GRAM на деплой + 0.25 GRAM комиссия сервиса).
+              Общая стоимость создания: 0.5 GRAM (0.25 GRAM на деплой через фабрику + 0.25 GRAM комиссия сервиса).
             </p>
           </div>
         </div>
