@@ -22,6 +22,7 @@ function MinterApp() {
   const [imageUri, setImageUri] = useState('');
   const [amount, setAmount] = useState('1000000');
   const [decimals, setDecimals] = useState('9');
+  
   const [addLiquidity, setAddLiquidity] = useState(true);
   const [liquidityAmount, setLiquidityAmount] = useState('1000');
 
@@ -123,7 +124,7 @@ function MinterApp() {
 
       const result = await tonConnectUI.sendTransaction(transaction);
       console.log('Транзакция отправлена:', result);
-      alert(`Запрос на "${actionType}" успешно отправлен! Ожидайте выполнения администратором.`);
+      alert(`Запрос на "${actionType}" успешно отправлен! Ожидайте выполнения.`);
     } catch (err: any) {
       console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
@@ -132,7 +133,6 @@ function MinterApp() {
     }
   };
 
-  // Расчет стоимости вынесен строго внутрь функции компонента перед return
   const totalDisplayCost = 0.5 + (addLiquidity ? parseFloat(liquidityAmount || '0') : 0);
 
   return (
@@ -286,6 +286,7 @@ function MinterApp() {
                 </div>
               </div>
 
+              {/* Пул ликвидности с подробным объяснением и примером */}
               <div className="space-y-3 bg-[#121212] p-3.5 rounded-2xl border border-cyan-500/30">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer select-none">
@@ -300,6 +301,13 @@ function MinterApp() {
                   <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-500/20">
                     DEX Ready
                   </span>
+                </div>
+
+                <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 text-[11px] text-zinc-300 space-y-1.5 leading-relaxed">
+                  <p className="text-cyan-400 font-semibold">⚡️ Как работает блокировка:</p>
+                  <p>
+                    Ликвидность загружается в соотношении <b>1 токен = 1 TON</b>. Остаток монет поступает на ваш кошелек. Пул автоматически блокируется смарт-контрактом.
+                  </p>
                 </div>
 
                 {addLiquidity && (
@@ -326,6 +334,9 @@ function MinterApp() {
                       placeholder="Введите сумму от 1 до 100000"
                       className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono"
                     />
+                    <p className="text-[10px] text-zinc-400 bg-cyan-500/5 p-2 rounded-lg border border-cyan-500/10 leading-relaxed">
+                      ✨ <strong className="text-cyan-300">Пример:</strong> При эмиссии в {amount || '1,000,000'} монет стартовая ценность актива составит основу рыночной капитализации. К примеру, если пул ликвидности равен 10 монет и 10 TON, а выпущено всего 1,010 монет, то на балансе у вас останется 1,000 монет ценностью в 10,000 TON 🔥
+                    </p>
                   </div>
                 )}
               </div>
@@ -381,66 +392,74 @@ function MinterApp() {
                     placeholder="EQ..."
                     value={manageTokenAddress}
                     onChange={(e) => setManageTokenAddress(e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono transition"
+                    disabled={!userAddress}
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono transition disabled:opacity-50"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5">
-                <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-zinc-200">🔥 Сжечь токены (Burn)</div>
-                    <div className="text-[10px] text-zinc-400">Уменьшить эмиссию в обращении</div>
+              {!userAddress ? (
+                /* Если кошелек не подключен — блокируем управление и показываем красивую синюю кнопку подключения */
+                <div className="space-y-3 py-4 text-center">
+                  <div className="text-xs text-amber-400 font-medium bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl">
+                    ⚠️ Для доступа к управлению токеном необходимо подключить кошелек!
                   </div>
                   <button
                     type="button"
-                    disabled={loading || !userAddress}
-                    onClick={() => handleAction('BURN')}
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow"
+                    onClick={handleConnectWallet}
+                    className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm rounded-2xl transition shadow-lg shadow-cyan-500/25 active:scale-[0.98]"
                   >
-                    Сжечь (0.5 TON)
+                    Подключить кошелек
                   </button>
                 </div>
-
-                <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-zinc-200">🪙 Доминтить (Mint)</div>
-                    <div className="text-[10px] text-zinc-400">Выпустить дополнительные монеты</div>
+              ) : (
+                /* Если кошелек подключен — показываем доступные действия */
+                <div className="grid grid-cols-1 gap-2.5">
+                  <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-zinc-200">🔥 Сжечь токены (Burn)</div>
+                      <div className="text-[10px] text-zinc-400">Уменьшить эмиссию в обращении</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleAction('BURN')}
+                      className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow"
+                    >
+                      Сжечь (0.5 TON)
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={loading || !userAddress}
-                    onClick={() => handleAction('MINT')}
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow"
-                  >
-                    Минт (0.5 TON)
-                  </button>
-                </div>
 
-                <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-zinc-200">🛑 Отказ от прав (Revoke)</div>
-                    <div className="text-[10px] text-zinc-400">Передать права в нулевой адрес</div>
+                  <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-zinc-200">🪙 Доминтить (Mint)</div>
+                      <div className="text-[10px] text-zinc-400">Выпустить дополнительные монеты</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleAction('MINT')}
+                      className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow"
+                    >
+                      Минт (0.5 TON)
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={loading || !userAddress}
-                    onClick={() => handleAction('REVOKE')}
-                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 font-bold text-xs rounded-xl transition shadow"
-                  >
-                    Отказ (0.5 TON)
-                  </button>
-                </div>
-              </div>
 
-              {!userAddress && (
-                <button
-                  type="button"
-                  onClick={handleConnectWallet}
-                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm rounded-2xl transition shadow-lg shadow-cyan-500/25 active:scale-[0.98]"
-                >
-                  Подключить кошелек
-                </button>
+                  <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-zinc-200">🛑 Отказ от прав (Revoke)</div>
+                      <div className="text-[10px] text-zinc-400">Передать права в нулевой адрес</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleAction('REVOKE')}
+                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 font-bold text-xs rounded-xl transition shadow"
+                    >
+                      Отказ (0.5 TON)
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -450,7 +469,7 @@ function MinterApp() {
               <span>Статус сети:</span> <span className="text-emerald-400 font-medium">TON Mainnet Online</span>
             </p>
             <p className="flex justify-between text-cyan-400/90 font-medium">
-              <span>Режим работы:</span> <span>Заявки с ручной обработкой</span>
+              <span>Платформа:</span> <span>GRAM-TOKEN-START</span>
             </p>
           </div>
         </div>
