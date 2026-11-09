@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TON Jetton App',
-  description: 'Telegram Mini App',
+  title: 'TON Market Minter & Manager',
+  description: 'Professional TON Launchpad',
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" async />
       </head>
-      <body className="antialiased bg-slate-900 text-white m-0 p-0">
+      <body className="antialiased bg-[#0e121b] text-slate-100 selection:bg-cyan-500 selection:text-black">
         {children}
       </body>
     </html>
