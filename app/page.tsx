@@ -6,7 +6,7 @@ import {
   useTonConnectUI,
   useTonAddress,
   useTonWallet,
-  TonConnectButton, // Импортируем официальную синюю кнопку TonConnect
+  TonConnectButton,
 } from '@tonconnect/ui-react';
 import { beginCell, toNano } from '@ton/core';
 
@@ -25,7 +25,7 @@ function MinterApp() {
   const [amount, setAmount] = useState('1000000');
   const [decimals, setDecimals] = useState('9');
   const [addLiquidity, setAddLiquidity] = useState(true);
-  const [liquidityAmount, setLiquidityAmount] = useState('10'); // По умолчанию 10 TON для примера
+  const [liquidityAmount, setLiquidityAmount] = useState('10');
 
   // Управление токеном
   const [manageTokenAddress, setManageTokenAddress] = useState('');
@@ -34,11 +34,20 @@ function MinterApp() {
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Уведомление о копировании
+  const [copied, setCopied] = useState(false);
+
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
   const formatAddress = (addr: string) => {
     if (!addr) return '';
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const checkTokenOwnership = async (tokenAddr: string) => {
@@ -67,7 +76,7 @@ function MinterApp() {
     }
   };
 
-  // Расчет итоговой стоимости: 0.5 базовая + ликвидность + 0.5 за пул (если выбран)
+  // Расчет детальной стоимости
   const baseFee = 0.5;
   const poolFee = addLiquidity ? 0.5 : 0;
   const liqVal = addLiquidity ? parseFloat(liquidityAmount || '0') : 0;
@@ -181,13 +190,12 @@ function MinterApp() {
             </div>
           </div>
 
-          {/* Официальная синяя кнопка подключения TonConnect в шапке */}
           <div className="scale-90 origin-right">
             <TonConnectButton />
           </div>
         </div>
 
-        {/* Премиальный переключатель вкладок */}
+        {/* Переключатель вкладок */}
         <div className="grid grid-cols-2 gap-2 bg-[#121824]/90 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
           <button
             type="button"
@@ -238,7 +246,7 @@ function MinterApp() {
                     placeholder="Например: Gram Gold"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all shadow-sm"
                   />
                 </div>
                 <div>
@@ -249,7 +257,7 @@ function MinterApp() {
                     placeholder="GOLD"
                     value={symbol}
                     onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 uppercase font-mono transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 uppercase font-mono transition-all shadow-sm"
                   />
                 </div>
               </div>
@@ -266,7 +274,7 @@ function MinterApp() {
                     placeholder="https://example.com/logo.png"
                     value={imageUri}
                     onChange={(e) => setImageUri(e.target.value)}
-                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all shadow-sm"
                   />
                 </div>
                 <div>
@@ -276,7 +284,7 @@ function MinterApp() {
                     placeholder="Краткая информация..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 resize-none transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 resize-none transition-all shadow-sm"
                   />
                 </div>
               </div>
@@ -305,7 +313,7 @@ function MinterApp() {
                 </div>
               </div>
 
-              {/* Пул ликвидности с корректным расчетом цены (+0.5 TON за пул) */}
+              {/* Пул ликвидности с пресетами */}
               <div className="space-y-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-cyan-500/30 shadow-inner">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer select-none">
@@ -319,19 +327,31 @@ function MinterApp() {
                   </label>
                 </div>
 
-                <div className="bg-[#0e1420]/90 border border-white/[0.05] rounded-xl p-2.5 text-[11px] text-slate-300 space-y-1.5 leading-relaxed shadow-sm">
-                  <p className="text-cyan-400 font-semibold">⚡️ Как работает блокировка:</p>
-                  <p>
-                    Ликвидность загружается в соотношении <b>1 токен = 1 TON</b>. Стоимость подключения пула составляет +0.5 TON к базовой комиссии. Остаток монет поступает на ваш кошелек.
-                  </p>
-                </div>
-
                 {addLiquidity && (
-                  <div className="pt-2 border-t border-white/[0.05] space-y-2 animate-fadeIn">
+                  <div className="pt-2 border-t border-white/[0.05] space-y-2.5 animate-fadeIn">
                     <div className="flex justify-between text-xs">
                       <span className="text-slate-400">Сумма ликвидности:</span>
                       <span className="text-cyan-400 font-mono font-bold">{liquidityAmount} TON</span>
                     </div>
+
+                    {/* Быстрые пресеты ликвидности */}
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {['5', '10', '50', '100'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setLiquidityAmount(preset)}
+                          className={`py-1.5 text-xs font-mono rounded-lg border transition-all ${
+                            liquidityAmount === preset
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                              : 'bg-[#0e1420] border-white/10 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {preset} TON
+                        </button>
+                      ))}
+                    </div>
+
                     <input
                       type="range"
                       min="1"
@@ -353,11 +373,38 @@ function MinterApp() {
                 )}
               </div>
 
+              {/* Детальный чек расчета стоимости перед отправкой */}
+              {userAddress && (
+                <div className="bg-[#0e1420] border border-white/10 rounded-2xl p-3 text-xs space-y-1.5">
+                  <div className="text-[11px] font-bold text-cyan-400 uppercase tracking-wide mb-1">🧾 Детализация расчета:</div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Базовая комиссия:</span>
+                    <span className="font-mono text-slate-200">0.5 TON</span>
+                  </div>
+                  {addLiquidity && (
+                    <>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Деплой пула DEX:</span>
+                        <span className="font-mono text-slate-200">0.5 TON</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Стартовая ликвидность:</span>
+                        <span className="font-mono text-slate-200">{liquidityAmount} TON</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="pt-1.5 border-t border-white/10 flex justify-between font-bold">
+                    <span className="text-white">Итого к списанию:</span>
+                    <span className="font-mono text-cyan-400">{totalDisplayCost} TON</span>
+                  </div>
+                </div>
+              )}
+
               {/* Кнопка создания токена */}
               <div className="pt-1">
                 {!userAddress ? (
-                  <div className="text-center py-2 bg-slate-900/60 border border-white/[0.05] rounded-2xl">
-                    <p className="text-xs text-slate-400 mb-2">Для создания токена подключите кошелек вверху 👆</p>
+                  <div className="text-center py-3 bg-slate-900/60 border border-white/[0.05] rounded-2xl space-y-2">
+                    <p className="text-xs text-slate-400">Для создания токена подключите кошелек вверху 👆</p>
                     <div className="flex justify-center">
                       <TonConnectButton />
                     </div>
@@ -394,16 +441,27 @@ function MinterApp() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-300 mb-1">Адрес токена (Jetton Master Address) *</label>
-                      <input
-                        type="text"
-                        placeholder="EQ..."
-                        value={manageTokenAddress}
-                        onChange={(e) => {
-                          setManageTokenAddress(e.target.value);
-                          checkTokenOwnership(e.target.value);
-                        }}
-                        className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="EQ..."
+                          value={manageTokenAddress}
+                          onChange={(e) => {
+                            setManageTokenAddress(e.target.value);
+                            checkTokenOwnership(e.target.value);
+                          }}
+                          className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
+                        />
+                        {manageTokenAddress && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(manageTokenAddress)}
+                            className="px-3 bg-slate-800 hover:bg-slate-700 text-xs text-cyan-400 rounded-xl border border-white/10 transition"
+                          >
+                            {copied ? '✓' : '📋'}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {manageTokenAddress && (
@@ -422,7 +480,7 @@ function MinterApp() {
                         placeholder="1000"
                         value={actionAmount}
                         onChange={(e) => setActionAmount(e.target.value)}
-                        className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                        className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
                       />
                     </div>
                   </div>
