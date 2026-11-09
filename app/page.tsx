@@ -19,7 +19,8 @@ function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
-  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking'>('create');
+  // Добавлена 5-я вкладка 'game'
+  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('create');
 
   // Кастомные уведомления (Toasts)
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -27,7 +28,6 @@ function MinterApp() {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     
-    // Telegram haptic feedback
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
       const haptic = (window as any).Telegram.WebApp.HapticFeedback;
       if (type === 'success') haptic.notificationOccurred('success');
@@ -76,13 +76,22 @@ function MinterApp() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
 
-  // Стейкинг (только GRAM, 30% годовых)
+  // Стейкинг
   const [stakeInputAmount, setStakeInputAmount] = useState('100');
   const [stakedGramBalance, setStakedGramBalance] = useState<number>(0);
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Таймер до начисления
+  // --- Состояние Игры (Notcoin кликер) ---
+  const [gameScore, setGameScore] = useState<number>(0);
+  const [energy, setEnergy] = useState<number>(1000);
+  const [maxEnergy, setMaxEnergy] = useState<number>(1000);
+  const [tapPower, setTapPower] = useState<number>(1);
+  const [multitapLevel, setMultitapLevel] = useState<number>(1);
+  const [energyLimitLevel, setEnergyLimitLevel] = useState<number>(1);
+  const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number }[]>([]);
+
+  // Таймер до начисления в стейкинге
   const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
 
   useEffect(() => {
@@ -95,8 +104,17 @@ function MinterApp() {
         return { days: 7, hours: 0, minutes: 0, seconds: 0 };
       });
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+
+    // Восстановление энергии кликера каждые 1 секунду
+    const energyTimer = setInterval(() => {
+      setEnergy((prev) => Math.min(maxEnergy, prev + 3));
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(energyTimer);
+    };
+  }, [maxEnergy]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -129,11 +147,30 @@ function MinterApp() {
         setTgUser({ id: currentId, name: 'Web User' });
       }
 
+      // Загрузка данных игрока и балансов
       const savedBalance = localStorage.getItem(`gram_balance_${currentId}`);
       if (savedBalance) setUserGramBalance(parseFloat(savedBalance));
 
       const savedStake = localStorage.getItem(`stake_${currentId}_GRAM`);
       if (savedStake) setStakedGramBalance(parseFloat(savedStake));
+
+      const savedGameScore = localStorage.getItem(`game_score_${currentId}`);
+      if (savedGameScore) setGameScore(parseFloat(savedGameScore));
+
+      const savedMultitap = localStorage.getItem(`game_multitap_${currentId}`);
+      if (savedMultitap) {
+        const lvl = parseInt(savedMultitap);
+        setMultitapLevel(lvl);
+        setTapPower(lvl);
+      }
+
+      const savedEnergyLimit = localStorage.getItem(`game_energylimit_${currentId}`);
+      if (savedEnergyLimit) {
+        const lvl = parseInt(savedEnergyLimit);
+        setEnergyLimitLevel(lvl);
+        setMaxEnergy(1000 + (lvl - 1) * 500);
+        setEnergy(1000 + (lvl - 1) * 500);
+      }
 
       const subStatus = localStorage.getItem(`subscribed_${currentId}`);
       if (subStatus === 'true') setIsSubscribed(true);
@@ -156,6 +193,73 @@ function MinterApp() {
       return;
     }
     setActiveTab(tab);
+  };
+
+  // --- Логика кликера (Notcoin) ---
+  const handleCoinClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (energy < tapPower) {
+      showToast('Недостаточно энергии!', 'info');
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setEnergy((prev) => Math.max(0, prev - tapPower));
+    const newScore = gameScore + tapPower;
+    setGameScore(newScore);
+    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+
+    // Добавляем летающую цифру при клике
+    const newId = Date.now() + Math.random();
+    setFloatingNumbers((prev) => [...prev, { id: newId, x, y, val: tapPower }]);
+    setTimeout(() => {
+      setFloatingNumbers((prev) => prev.filter((item) => item.id !== newId));
+    }, 800);
+
+    // Легкая вибрация телефона
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
+      (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    }
+  };
+
+  const upgradeMultitap = () => {
+    const cost = multitapLevel * 200;
+    if (gameScore < cost) {
+      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
+      return;
+    }
+
+    const newScore = gameScore - cost;
+    const newLvl = multitapLevel + 1;
+    setGameScore(newScore);
+    setMultitapLevel(newLvl);
+    setTapPower(newLvl);
+
+    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+    localStorage.setItem(`game_multitap_${tgUser.id}`, newLvl.toString());
+    showToast(`Успешно улучшен Multitap до ур. ${newLvl}! ⚡`, 'success');
+  };
+
+  const upgradeEnergyLimit = () => {
+    const cost = energyLimitLevel * 300;
+    if (gameScore < cost) {
+      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
+      return;
+    }
+
+    const newScore = gameScore - cost;
+    const newLvl = energyLimitLevel + 1;
+    setGameScore(newScore);
+    setEnergyLimitLevel(newLvl);
+    const newMaxEnergy = 1000 + (newLvl - 1) * 500;
+    setMaxEnergy(newMaxEnergy);
+    setEnergy(newMaxEnergy);
+
+    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+    localStorage.setItem(`game_energylimit_${tgUser.id}`, newLvl.toString());
+    showToast(`Энергия увеличена до ур. ${newLvl}! 🔋`, 'success');
   };
 
   const handleCheckSubscription = () => {
@@ -426,14 +530,13 @@ function MinterApp() {
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(refLink);
-      showToast('Реферальная ссылка скопирована в буфер обмена!', 'success');
+      showToast('Реферальная ссылка скопирована!', 'success');
     }
   };
 
   const progressPercent = Math.min(100, (totalRaised / HARD_CAP) * 100).toFixed(1);
   const calculatedGramOutput = (parseFloat(presaleAmount || '0') * 1000).toLocaleString();
 
-  // Расчет доходности стейкинга (30% годовых)
   const currentStakeVal = parseFloat(stakeInputAmount || '0');
   const weeklyReward = ((currentStakeVal * 0.30) / 52).toFixed(2);
   const yearlyReward = (currentStakeVal * 0.30).toFixed(2);
@@ -476,20 +579,20 @@ function MinterApp() {
           </div>
         </div>
 
-        {/* 4 вкладки */}
-        <div className="grid grid-cols-4 gap-1 bg-[#111726]/95 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
-          {(['create', 'manage', 'presale', 'staking'] as const).map((tab) => (
+        {/* 5 вкладок */}
+        <div className="grid grid-cols-5 gap-1 bg-[#111726]/95 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
+          {(['create', 'manage', 'presale', 'staking', 'game'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => handleTabChange(tab)}
-              className={`py-2 text-[10px] font-bold rounded-xl transition-all duration-300 ${
+              className={`py-2 text-[9px] font-bold rounded-xl transition-all duration-300 ${
                 activeTab === tab
                   ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20 scale-[1.02]'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              {tab === 'create' ? '✨ Создать' : tab === 'manage' ? '🛠 Управлять' : tab === 'presale' ? '🚀 Раздача' : '🔒 Стейкинг'}
+              {tab === 'create' ? '✨ Создать' : tab === 'manage' ? '🛠 Управлять' : tab === 'presale' ? '🚀 Раздача' : tab === 'staking' ? '🔒 Стейк' : '🎮 Игра'}
             </button>
           ))}
         </div>
@@ -847,7 +950,6 @@ function MinterApp() {
                   </button>
                 </div>
 
-                {/* Рефералка с кнопкой "Поделиться" */}
                 <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-white">👥 Реферальная программа</div>
@@ -898,7 +1000,7 @@ function MinterApp() {
             </div>
           )}
 
-          {/* ВКЛАДКА 4: СТЕЙКИНГ (30% APY + Интерактивный калькулятор доходности) */}
+          {/* ВКЛАДКА 4: СТЕЙКИНГ */}
           {activeTab === 'staking' && (
             <div className="space-y-4 animate-fadeIn">
               <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3.5 shadow-inner">
@@ -946,7 +1048,6 @@ function MinterApp() {
                   />
                 </div>
 
-                {/* Интерактивный калькулятор доходности */}
                 <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 text-xs space-y-1.5 font-mono">
                   <div className="text-[11px] font-bold text-cyan-400">📈 Прогноз доходности (30% APY):</div>
                   <div className="flex justify-between text-slate-400">
@@ -976,6 +1077,102 @@ function MinterApp() {
                   >
                     {unstakeLoading ? '...' : '📤 Снять'}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ВКЛАДКА 5: ИГРА (Notcoin Кликер) */}
+          {activeTab === 'game' && (
+            <div className="space-y-4 animate-fadeIn text-center">
+              <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-4 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                    🎮 GRAM Clicker (Notcoin Style)
+                  </span>
+                  <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-bold">
+                    ⚡ {tapPower} / тап
+                  </span>
+                </div>
+
+                {/* Баланс монеток в игре */}
+                <div className="py-2">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-widest">Игровой баланс</div>
+                  <div className="text-3xl font-black font-mono text-white mt-1 tracking-tight">
+                    {gameScore.toLocaleString()} <span className="text-cyan-400 text-base">GRAM</span>
+                  </div>
+                </div>
+
+                {/* Центральная кликабельная монета */}
+                <div className="relative flex items-center justify-center py-6 select-none">
+                  {/* Летающие числа при тапе */}
+                  {floatingNumbers.map((item) => (
+                    <div
+                      key={item.id}
+                      className="absolute text-cyan-300 font-black text-lg font-mono pointer-events-none animate-floatUp z-20"
+                      style={{ left: `${item.x}px`, top: `${item.y - 20}px` }}
+                    >
+                      +{item.val}
+                    </div>
+                  ))}
+
+                  <div
+                    onClick={handleCoinClick}
+                    className="w-40 h-40 rounded-full bg-gradient-to-tr from-cyan-500 via-sky-400 to-blue-600 flex items-center justify-center shadow-2xl shadow-cyan-500/50 cursor-pointer active:scale-90 transition-transform duration-100 ring-4 ring-cyan-400/20 relative group"
+                  >
+                    <div className="absolute inset-2 rounded-full border border-white/30 flex items-center justify-center bg-gradient-to-b from-transparent to-black/30">
+                      <span className="text-6xl filter drop-shadow-md select-none group-hover:scale-110 transition-transform">💎</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Шкала энергии */}
+                <div className="space-y-1.5 text-left">
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-slate-300">⚡ Энергия</span>
+                    <span className="text-cyan-400">{energy} / {maxEnergy}</span>
+                  </div>
+                  <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+                    <div
+                      className="bg-gradient-to-r from-cyan-500 to-sky-400 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${(energy / maxEnergy) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Магазин улучшений (Boosters) */}
+                <div className="pt-2 border-t border-white/10 space-y-2 text-left">
+                  <div className="text-xs font-bold text-cyan-400 uppercase tracking-wide">🛠 Улучшения (Boosters):</div>
+                  
+                  {/* Улучшение Multitap */}
+                  <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-white">⚡ Multitap (Ур. {multitapLevel})</div>
+                      <div className="text-[10px] text-cyan-400 font-mono">+{multitapLevel} за 1 тап • Цена: {(multitapLevel * 200).toLocaleString()} GRAM</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={upgradeMultitap}
+                      className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow active:scale-95 whitespace-nowrap"
+                    >
+                      Качнуть
+                    </button>
+                  </div>
+
+                  {/* Улучшение Energy Limit */}
+                  <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-white">🔋 Energy Limit (Ур. {energyLimitLevel})</div>
+                      <div className="text-[10px] text-cyan-400 font-mono">Макс. {maxEnergy} • Цена: {(energyLimitLevel * 300).toLocaleString()} GRAM</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={upgradeEnergyLimit}
+                      className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow active:scale-95 whitespace-nowrap"
+                    >
+                      Качнуть
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
