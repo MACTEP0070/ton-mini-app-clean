@@ -15,7 +15,8 @@ function MinterApp() {
   const userAddress = useTonAddress();
   const wallet = useTonWallet();
 
-  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale'>('create');
+  // Добавлена 4-я вкладка 'staking'
+  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking'>('create');
 
   // Создание токена
   const [name, setName] = useState('');
@@ -35,10 +36,11 @@ function MinterApp() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Прелистинг GRAM-START
+  // Раздача GRAM-START
   const [presaleAmount, setPresaleAmount] = useState('1');
   const [participating, setParticipating] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawInputAmount, setWithdrawInputAmount] = useState('100000');
   
   const [totalRaised, setTotalRaised] = useState(68203);
   const HARD_CAP = 100000;
@@ -51,6 +53,34 @@ function MinterApp() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [refCopied, setRefCopied] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
+
+  // Стейкинг стейты (GRAM, USDT, GRAM-START под 20% годовых)
+  const [stakeAsset, setStakeAsset] = useState<'GRAM' | 'USDT' | 'GRAM-START'>('GRAM-START');
+  const [stakeInputAmount, setStakeInputAmount] = useState('100');
+  const [stakedBalances, setStakedBalances] = useState<{ [key: string]: number }>({
+    'GRAM': 0,
+    'USDT': 0,
+    'GRAM-START': 0,
+  });
+  const [stakingLoading, setStakingLoading] = useState(false);
+  const [unstakeLoading, setUnstakeLoading] = useState(false);
+
+  // Таймер до следующего еженедельного начисления (7 дней)
+  const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
+
+  useEffect(() => {
+    // Живой таймер обратного отсчета для стейкинга
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
+        return { days: 7, hours: 0, minutes: 0, seconds: 0 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -66,7 +96,6 @@ function MinterApp() {
             setReferrerId(ref);
             localStorage.setItem(`referrer_${currentId}`, ref);
             
-            // Начисление 100 GRAM-START рефереру за приведенного друга
             const refBalanceKey = `gram_balance_${ref}`;
             const currentRefBal = parseFloat(localStorage.getItem(refBalanceKey) || '0');
             localStorage.setItem(refBalanceKey, (currentRefBal + 100).toString());
@@ -82,6 +111,14 @@ function MinterApp() {
       if (savedBalance) {
         setUserGramBalance(parseFloat(savedBalance));
       }
+
+      // Загрузка стейкинг балансов
+      ['GRAM', 'USDT', 'GRAM-START'].forEach((asset) => {
+        const savedStake = localStorage.getItem(`stake_${currentId}_${asset}`);
+        if (savedStake) {
+          setStakedBalances((prev) => ({ ...prev, [asset]: parseFloat(savedStake) }));
+        }
+      });
 
       const subStatus = localStorage.getItem(`subscribed_${currentId}`);
       if (subStatus === 'true') {
@@ -231,7 +268,7 @@ function MinterApp() {
 
   const handlePresaleParticipate = async () => {
     if (!userAddress) {
-      alert('Подключите кошелек для участия в прелистинге!');
+      alert('Подключите кошелек для участия в раздаче!');
       return;
     }
     const tonVal = parseFloat(presaleAmount);
@@ -259,46 +296,105 @@ function MinterApp() {
       alert(`Успешно! Вы выкупили ${tokensBought.toLocaleString()} GRAM-START за ${tonVal} TON. 💎`);
     } catch (err: any) {
       console.error(err);
-      alert('Транзакция прелистинга отменена.');
+      alert('Транзакция раздачи отменена.');
     } finally {
       setParticipating(false);
     }
   };
 
-  // 1 & 3: Вывод GRAM-START (мин. 100,000 с оплатой газа 1 TON и комментарием)
   const handleWithdrawTokens = async () => {
     if (!userAddress) {
       alert('Подключите кошелек для вывода токенов!');
       return;
     }
-    if (userGramBalance < 100000) {
+    const amountToWithdraw = parseFloat(withdrawInputAmount);
+    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) {
       alert('Минимальная сумма для вывода составляет 100,000 GRAM-START!');
+      return;
+    }
+    if (amountToWithdraw > userGramBalance) {
+      alert('Введенная сумма превышает ваш доступный баланс!');
       return;
     }
 
     setWithdrawing(true);
     try {
-      const gasFee = 1; // 1 TON за газ
-      const commentText = `Оплата газа | Вывод: ${userGramBalance.toLocaleString()} GRAM-START | Wallet:${userAddress}`;
+      const commentText = `Вывод: ${amountToWithdraw.toLocaleString()} GRAM-START | Wallet:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
 
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano(gasFee.toString()).toString(), payload: commentCell.toBoc().toString('base64') }],
+        messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano('0.05').toString(), payload: commentCell.toBoc().toString('base64') }],
       };
 
       await tonConnectUI.sendTransaction(transaction);
       
-      // Списываем или обнуляем баланс после успешного подтверждения транзакции газа
-      setUserGramBalance(0);
-      localStorage.setItem(`gram_balance_${tgUserId}`, '0');
+      const newBal = userGramBalance - amountToWithdraw;
+      setUserGramBalance(newBal);
+      localStorage.setItem(`gram_balance_${tgUserId}`, newBal.toString());
 
-      alert(`Запрос на вывод ${userGramBalance.toLocaleString()} GRAM-START успешно отправлен! Списан комиссионный газ 1 TON.`);
+      alert(`Запрос на вывод ${amountToWithdraw.toLocaleString()} GRAM-START успешно отправлен!`);
     } catch (err: any) {
       console.error(err);
       alert('Транзакция вывода была отменена.');
     } finally {
       setWithdrawing(false);
+    }
+  };
+
+  // Логика стейкинга (депозит активов на ваш кошелек с обновлением баланса в приложении)
+  const handleStakeAction = async (isDeposit: boolean) => {
+    if (!userAddress) {
+      alert('Подключите кошелек!');
+      return;
+    }
+    const val = parseFloat(stakeInputAmount);
+    if (isNaN(val) || val <= 0) {
+      alert('Введите корректную сумму');
+      return;
+    }
+
+    if (!isDeposit && val > (stakedBalances[stakeAsset] || 0)) {
+      alert('Нельзя снять больше, чем у вас в стейкинге!');
+      return;
+    }
+
+    if (isDeposit) {
+      setStakingLoading(true);
+    } else {
+      setUnstakeLoading(true);
+    }
+
+    try {
+      const commentText = isDeposit 
+        ? `STAKE_DEPOSIT | Asset:${stakeAsset} | Amount:${val} | Wallet:${userAddress}`
+        : `STAKE_WITHDRAW | Asset:${stakeAsset} | Amount:${val} | Wallet:${userAddress}`;
+      
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+
+      // Отправка транзакции на ваш сервисный кошелек
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano(isDeposit ? '0.1' : '0.05').toString(), payload: commentCell.toBoc().toString('base64') }],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+
+      // Обновление локального баланса стейкинга для каждого аккаунта
+      setStakedBalances((prev) => {
+        const current = prev[stakeAsset] || 0;
+        const updated = isDeposit ? current + val : Math.max(0, current - val);
+        localStorage.setItem(`stake_${tgUserId}_${stakeAsset}`, updated.toString());
+        return { ...prev, [stakeAsset]: updated };
+      });
+
+      alert(isDeposit ? `Успешно отправлено в стейкинг: ${val} ${stakeAsset} 🚀` : `Успешно снято со стейкинга: ${val} ${stakeAsset} 💎`);
+    } catch (err: any) {
+      console.error(err);
+      alert('Транзакция стейкинга была отменена.');
+    } finally {
+      setStakingLoading(false);
+      setUnstakeLoading(false);
     }
   };
 
@@ -327,12 +423,12 @@ function MinterApp() {
           </div>
         </div>
 
-        {/* 3 вкладки */}
-        <div className="grid grid-cols-3 gap-1.5 bg-[#111726]/95 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
+        {/* 4 вкладки: Создать, Управлять, Раздача, Стейкинг */}
+        <div className="grid grid-cols-4 gap-1 bg-[#111726]/95 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('create')}
-            className={`py-2 text-[11px] font-bold rounded-xl transition-all duration-300 ${
+            className={`py-2 text-[10px] font-bold rounded-xl transition-all duration-300 ${
               activeTab === 'create'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
@@ -349,7 +445,7 @@ function MinterApp() {
               }
               setActiveTab('manage');
             }}
-            className={`py-2 text-[11px] font-bold rounded-xl transition-all duration-300 ${
+            className={`py-2 text-[10px] font-bold rounded-xl transition-all duration-300 ${
               activeTab === 'manage'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
@@ -360,13 +456,24 @@ function MinterApp() {
           <button
             type="button"
             onClick={() => setActiveTab('presale')}
-            className={`py-2 text-[11px] font-bold rounded-xl transition-all duration-300 ${
+            className={`py-2 text-[10px] font-bold rounded-xl transition-all duration-300 ${
               activeTab === 'presale'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
-            🚀 GRAM-START
+            🚀 Раздача
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('staking')}
+            className={`py-2 text-[10px] font-bold rounded-xl transition-all duration-300 ${
+              activeTab === 'staking'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            🔒 Стейкинг
           </button>
         </div>
       </header>
@@ -675,20 +782,20 @@ function MinterApp() {
             </div>
           )}
 
-          {/* ВКЛАДКА 3: ПРЕЛИСТИНГ GRAM-START */}
+          {/* ВКЛАДКА 3: РАЗДАЧА GRAM-START */}
           {activeTab === 'presale' && (
             <div className="space-y-4 animate-fadeIn">
               <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                    <span>🚀</span> Прелистинг GRAM-START
+                    <span>🚀</span> Раздача GRAM-START
                   </span>
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-bold animate-pulse">
                     ● ACTIVE
                   </span>
                 </div>
 
-                {/* Персональный баланс и Кнопка вывода */}
+                {/* Персональный баланс и вывод */}
                 <div className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-indigo-500/10 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -701,21 +808,30 @@ function MinterApp() {
                     </div>
                   </div>
 
-                  {/* Кнопка вывода (мин. 100,000) */}
-                  <button
-                    type="button"
-                    disabled={withdrawing || !userAddress}
-                    onClick={handleWithdrawTokens}
-                    className="w-full py-2.5 bg-slate-900/80 hover:bg-slate-900 border border-cyan-500/40 text-cyan-300 hover:text-cyan-200 font-bold text-xs rounded-xl transition-all shadow-inner flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                  >
-                    <span>📤</span> {withdrawing ? 'Обработка вывода...' : 'Вывести GRAM-START (Мин. 100k)'}
-                  </button>
-                  <p className="text-[9px] text-slate-400 text-center">
-                    * Для вывода требуется минимум 100,000 GRAM-START и списание 1 TON на оплату газа.
-                  </p>
+                  <div className="pt-2 border-t border-cyan-500/20 space-y-2">
+                    <label className="block text-[11px] font-medium text-slate-300">Сумма для вывода GRAM-START (Мин. 100,000):</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="100000"
+                        value={withdrawInputAmount}
+                        onChange={(e) => setWithdrawInputAmount(e.target.value)}
+                        placeholder="100000"
+                        className="w-full bg-[#0b101d] border border-cyan-500/30 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400 shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        disabled={withdrawing || !userAddress}
+                        onClick={handleWithdrawTokens}
+                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-cyan-500/20 whitespace-nowrap active:scale-95"
+                      >
+                        {withdrawing ? 'Вывод...' : 'Вывести'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Кнопка: Наш токен на бирже DeDust */}
+                {/* Биржа DeDust */}
                 <div className="bg-[#0b101d] p-3.5 rounded-xl border border-cyan-500/20 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -756,14 +872,14 @@ function MinterApp() {
                   </button>
                 </div>
 
-                {/* Реферальная программа (+100 GRAM за друга) */}
+                {/* Рефералка */}
                 <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-white">👥 Реферальная программа</div>
                     <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">+100 GRAM за друга</span>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Приглашайте друзей по вашей ссылке и получайте по 100 токенов GRAM-START за каждого приведенного участника!
+                    Приглашайте друзей по вашей ссылке и получайте по 100 токенов GRAM-START за каждого участника!
                   </p>
                   <div className="flex gap-2 pt-1">
                     <input
@@ -782,7 +898,7 @@ function MinterApp() {
                   </div>
                 </div>
 
-                {/* Прогресс общего сбора */}
+                {/* Прогресс */}
                 <div className="space-y-1.5 pt-1">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-slate-300">Общий сбор: <strong className="text-cyan-400 font-mono">{totalRaised.toLocaleString()} TON</strong></span>
@@ -796,9 +912,8 @@ function MinterApp() {
                   </div>
                 </div>
 
-                {/* Курс токена */}
                 <div className="bg-[#0b101d] p-2.5 rounded-xl border border-white/5 text-[11px] flex justify-between text-slate-300 font-mono">
-                  <span>Курс прелистинга:</span>
+                  <span>Курс раздачи:</span>
                   <span className="text-cyan-400 font-bold">1 TON = 1,000 GRAM-START</span>
                 </div>
 
@@ -837,15 +952,110 @@ function MinterApp() {
                   type="button"
                   disabled={participating || !userAddress}
                   onClick={handlePresaleParticipate}
-                  className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97]"
+                  className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97]"
                 >
                   {participating ? 'Обработка транзакции...' : `🚀 Купить GRAM-START за ${presaleAmount || 0} TON`}
                 </button>
               </div>
+            </div>
+          )}
 
-              <div className="bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05] text-[11px] text-slate-400 space-y-1">
-                <p className="text-cyan-300 font-semibold">🔒 Безопасность и защита:</p>
-                <p>Баланс токенов привязан к вашему Telegram-аккаунту и защищен смарт-контрактами. Если транзакция отменяется или отклоняется, средства не списываются.</p>
+          {/* ВКЛАДКА 4: СТЕЙКИНГ (GRAM, USDT, GRAM-START ПОД 20% ГОДОВЫХ) */}
+          {activeTab === 'staking' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3.5 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                    <span>🔒</span> Стейкинг активов (20% Годовых)
+                  </span>
+                  <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-bold font-mono">
+                    APY: 20%
+                  </span>
+                </div>
+
+                {/* Живой таймер до еженедельного начисления */}
+                <div className="bg-[#0b101d] p-3 rounded-xl border border-cyan-500/20 flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wide">До начисления наград:</div>
+                    <div className="text-sm font-black font-mono text-cyan-400 mt-0.5">
+                      {timeLeft.days}д {timeLeft.hours}ч {timeLeft.minutes}м {timeLeft.seconds}с
+                    </div>
+                  </div>
+                  <div className="text-right text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                    Начисление раз в неделю
+                  </div>
+                </div>
+
+                {/* Выбор актива для стейкинга */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-300">Выберите актив для стейкинга:</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['GRAM-START', 'GRAM', 'USDT'] as const).map((asset) => (
+                      <button
+                        key={asset}
+                        type="button"
+                        onClick={() => setStakeAsset(asset)}
+                        className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                          stakeAsset === asset
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-md shadow-cyan-500/20'
+                            : 'bg-[#0b101d] border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {asset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Баланс выбранного актива в стейкинге */}
+                <div className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-indigo-500/10 p-3.5 rounded-2xl border border-cyan-500/30 flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] text-cyan-300 font-semibold uppercase tracking-wider">В стейкинге ({stakeAsset})</div>
+                    <div className="text-xl font-black font-mono text-white mt-0.5">
+                      {(stakedBalances[stakeAsset] || 0).toLocaleString()} <span className="text-xs text-cyan-400 font-normal">{stakeAsset}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400">Telegram аккаунт</div>
+                    <div className="text-xs font-mono text-slate-300">ID: {tgUserId}</div>
+                  </div>
+                </div>
+
+                {/* Поле ввода суммы для стейкинга / снятия */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-300">Сумма операции:</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={stakeInputAmount}
+                    onChange={(e) => setStakeInputAmount(e.target.value)}
+                    placeholder="100"
+                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
+                  />
+                </div>
+
+                {/* Кнопки Положить / Снять (без комиссии, доступно раз в неделю) */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={stakingLoading || !userAddress}
+                    onClick={() => handleStakeAction(true)}
+                    className="py-3 bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md shadow-cyan-500/30 active:scale-[0.97]"
+                  >
+                    {stakingLoading ? 'Внесение...' : `📥 Положить в стейкинг`}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={unstakeLoading || !userAddress}
+                    onClick={() => handleStakeAction(false)}
+                    className="py-3 bg-slate-900 hover:bg-slate-800 border border-cyan-500/30 disabled:opacity-50 text-cyan-300 font-bold text-xs rounded-xl transition-all shadow-md active:scale-[0.97]"
+                  >
+                    {unstakeLoading ? 'Снятие...' : `📤 Снять (раз в неделю)`}
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-400 text-center leading-relaxed">
+                  * Все средства (USDT, GRAM, GRAM-START) депонируются в смарт-контейнере стейкинга без комиссии. Доступно снятие и пополнение 1 раз в неделю.
+                </p>
               </div>
             </div>
           )}
