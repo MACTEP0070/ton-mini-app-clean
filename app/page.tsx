@@ -19,8 +19,10 @@ function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
+  // 5 полноценных вкладок
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('game');
 
+  // Кастомные тост-уведомления
   const [toasts, setToasts] = useState<Toast[]>([]);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now();
@@ -35,9 +37,10 @@ function MinterApp() {
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, 3500);
   };
 
+  // Telegram профиль
   const [tgUser, setTgUser] = useState<{ id: string; name: string; username?: string }>({
     id: 'guest_user',
     name: 'Гость',
@@ -60,11 +63,12 @@ function MinterApp() {
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Раздача
+  // Раздача GRAM-START
   const [presaleAmount, setPresaleAmount] = useState('1');
   const [participating, setParticipating] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawInputAmount, setWithdrawInputAmount] = useState('100000');
+  
   const [totalRaised, setTotalRaised] = useState(68203);
   const HARD_CAP = 100000;
 
@@ -72,13 +76,13 @@ function MinterApp() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
 
-  // Стейкинг
+  // Стейкинг (только GRAM, 30% годовых)
   const [stakeInputAmount, setStakeInputAmount] = useState('100');
   const [stakedGramBalance, setStakedGramBalance] = useState<number>(0);
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Игра (Notcoin стиль)
+  // Игра (Notcoin кликер)
   const [gameScore, setGameScore] = useState<number>(0);
   const [energy, setEnergy] = useState<number>(1000);
   const [maxEnergy, setMaxEnergy] = useState<number>(1000);
@@ -87,7 +91,7 @@ function MinterApp() {
   const [energyLimitLevel, setEnergyLimitLevel] = useState<number>(1);
   const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number }[]>([]);
 
-  // Таймер стейкинга
+  // Таймер до начисления
   const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
 
   useEffect(() => {
@@ -131,6 +135,7 @@ function MinterApp() {
           if (ref !== currentId) {
             setReferrerId(ref);
             localStorage.setItem(`referrer_${currentId}`, ref);
+            
             const refBalanceKey = `gram_balance_${ref}`;
             const currentRefBal = parseFloat(localStorage.getItem(refBalanceKey) || '0');
             localStorage.setItem(refBalanceKey, (currentRefBal + 100).toString());
@@ -188,7 +193,7 @@ function MinterApp() {
     setActiveTab(tab);
   };
 
-  // Клик по кастомной монете
+  // Кликер игра
   const handleCoinClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (energy < tapPower) {
       showToast('Недостаточно энергии!', 'info');
@@ -433,6 +438,10 @@ function MinterApp() {
   const progressPercent = Math.min(100, (totalRaised / HARD_CAP) * 100).toFixed(1);
   const calculatedGramOutput = (parseFloat(presaleAmount || '0') * 1000).toLocaleString();
 
+  const currentStakeVal = parseFloat(stakeInputAmount || '0');
+  const weeklyReward = ((currentStakeVal * 0.30) / 52).toFixed(2);
+  const yearlyReward = (currentStakeVal * 0.30).toFixed(2);
+
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-between font-sans px-3 py-3 select-none overflow-x-hidden">
       
@@ -453,7 +462,7 @@ function MinterApp() {
         ))}
       </div>
 
-      {/* Верхняя панель (адаптивная без переносов) */}
+      {/* Верхняя панель */}
       <header className="w-full max-w-md pt-1 pb-2">
         <div className="flex items-center justify-between bg-[#111726]/95 border border-white/[0.08] rounded-2xl p-3 shadow-xl mb-2 backdrop-blur-xl">
           <div className="flex items-center gap-2.5">
@@ -470,7 +479,7 @@ function MinterApp() {
           </div>
         </div>
 
-        {/* 5 компактных вкладок в ряд без переносов */}
+        {/* 5 компактных вкладок */}
         <div className="grid grid-cols-5 gap-1 bg-[#111726]/95 p-1 rounded-2xl border border-white/[0.08] shadow-lg">
           {(['create', 'manage', 'presale', 'staking', 'game'] as const).map((tab) => (
             <button
@@ -495,7 +504,7 @@ function MinterApp() {
           
           {/* ВКЛАДКА 1: СОЗДАНИЕ */}
           {activeTab === 'create' && (
-            <form onSubmit={handleMint} className="space-y-3">
+            <form onSubmit={handleMint} className="space-y-3 animate-fadeIn">
               <div className="space-y-2.5 bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05]">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex justify-between">
                   <span>📦 Параметры</span>
@@ -573,7 +582,7 @@ function MinterApp() {
 
           {/* ВКЛАДКА 2: УПРАВЛЕНИЕ */}
           {activeTab === 'manage' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-fadeIn">
               <div className="bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05] space-y-2.5">
                 <div className="text-[11px] font-bold text-cyan-400 uppercase">⚙️ Управление</div>
                 <input
@@ -626,7 +635,7 @@ function MinterApp() {
 
           {/* ВКЛАДКА 3: РАЗДАЧА */}
           {activeTab === 'presale' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-fadeIn">
               <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold uppercase text-cyan-400">🚀 Раздача GRAM-START</span>
@@ -663,6 +672,15 @@ function MinterApp() {
                 >
                   💱 Swap на DeDust.io
                 </a>
+
+                <button
+                  type="button"
+                  onClick={handleCheckSubscription}
+                  disabled={isSubscribed}
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs rounded-xl border border-white/10"
+                >
+                  {isSubscribed ? '✓ Подписка оформлена' : '📢 Подписаться на канал (+100 GRAM)'}
+                </button>
 
                 <button
                   type="button"
@@ -708,7 +726,7 @@ function MinterApp() {
 
           {/* ВКЛАДКА 4: СТЕЙКИНГ */}
           {activeTab === 'staking' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-fadeIn">
               <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold uppercase text-cyan-400">🔒 Стейкинг GRAM (30% APY)</span>
@@ -731,6 +749,18 @@ function MinterApp() {
                   onChange={(e) => setStakeInputAmount(e.target.value)}
                   className="w-full bg-[#0b101d] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
                 />
+
+                <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 text-xs space-y-1 font-mono">
+                  <div className="text-[11px] font-bold text-cyan-400">📈 Прогноз доходности:</div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>За 1 неделю:</span>
+                    <span className="text-emerald-400 font-bold">+{weeklyReward} GRAM</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>За 1 год:</span>
+                    <span className="text-emerald-400 font-bold">+{yearlyReward} GRAM</span>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -756,7 +786,7 @@ function MinterApp() {
 
           {/* ВКЛАДКА 5: ИГРА */}
           {activeTab === 'game' && (
-            <div className="space-y-3 text-center">
+            <div className="space-y-3 text-center animate-fadeIn">
               <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-cyan-400">🎮 GRAM Clicker</span>
