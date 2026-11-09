@@ -173,13 +173,13 @@ function MinterApp() {
   const totalDisplayCost = 0.5 + (addLiquidity ? parseFloat(liquidityAmount || '0') : 0);
 
   return (
-    <div className="min-h-screen bg-[#0e121b] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-black">
       
       {/* Шапка */}
       <header className="w-full max-w-md pt-2 pb-3">
-        <div className="flex items-center justify-between bg-[#151c28]/90 border border-white/[0.07] rounded-2xl p-3.5 shadow-xl mb-4 backdrop-blur-xl">
+        <div className="flex items-center justify-between bg-[#121824]/90 border border-white/[0.08] rounded-2xl p-3.5 shadow-2xl mb-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 font-bold text-sm">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 font-bold text-base">
               💎
             </div>
             <div>
@@ -187,20 +187,20 @@ function MinterApp() {
               <div className="text-[10px] text-cyan-400 font-medium">Launchpad & Manager Pro</div>
             </div>
           </div>
-          <div className="bg-[#1e293b]/80 border border-white/10 px-3 py-1 rounded-xl text-xs font-mono text-cyan-400 font-semibold shadow-inner">
+          <div className="bg-[#1a2333] border border-white/10 px-3 py-1 rounded-xl text-xs font-mono text-cyan-400 font-bold shadow-inner">
             ⚡️ PRO
           </div>
         </div>
 
-        {/* Переключатель вкладок */}
-        <div className="grid grid-cols-2 gap-2 bg-[#151c28]/80 p-1.5 rounded-2xl border border-white/[0.07] mb-3 backdrop-blur-xl shadow-md">
+        {/* Премиальный переключатель вкладок с неоновым свечением */}
+        <div className="grid grid-cols-2 gap-2 bg-[#121824]/90 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('create')}
-            className={`py-2.5 text-xs font-bold rounded-xl transition-all duration-300 ${
+            className={`py-2.5 text-xs font-bold rounded-xl transition-all duration-300 relative overflow-hidden ${
               activeTab === 'create'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
             ✨ Создать токен
@@ -214,10 +214,10 @@ function MinterApp() {
               }
               setActiveTab('manage');
             }}
-            className={`py-2.5 text-xs font-bold rounded-xl transition-all duration-300 ${
+            className={`py-2.5 text-xs font-bold rounded-xl transition-all duration-300 relative overflow-hidden ${
               activeTab === 'manage'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
             🛠 Управление
@@ -227,11 +227,11 @@ function MinterApp() {
 
       {/* Основной контейнер */}
       <main className="w-full max-w-md my-1 flex-1">
-        <div className="bg-[#151c28]/95 border border-white/[0.07] rounded-3xl p-4.5 shadow-2xl space-y-4 backdrop-blur-2xl">
+        <div className="bg-[#121824]/95 border border-white/[0.08] rounded-3xl p-4.5 shadow-2xl space-y-4 backdrop-blur-2xl">
           
           {activeTab === 'create' && (
             <form onSubmit={handleMint} className="space-y-4 animate-fadeIn">
-              <div className="space-y-3 bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
+              <div className="space-y-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>📦</span> Основные параметры
                 </div>
@@ -243,7 +243,7 @@ function MinterApp() {
                     placeholder="Например: Gram Gold"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all shadow-sm"
                   />
                 </div>
                 <div>
@@ -254,12 +254,12 @@ function MinterApp() {
                     placeholder="GOLD"
                     value={symbol}
                     onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 uppercase font-mono transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 uppercase font-mono transition-all shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3 bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
+              <div className="space-y-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>🖼</span> Брендинг и медиа
                 </div>
@@ -271,7 +271,7 @@ function MinterApp() {
                     placeholder="https://example.com/logo.png"
                     value={imageUri}
                     onChange={(e) => setImageUri(e.target.value)}
-                    className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all shadow-sm"
                   />
                 </div>
                 <div>
@@ -281,12 +281,12 @@ function MinterApp() {
                     placeholder="Краткая информация..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 resize-none transition-all shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 resize-none transition-all shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
+              <div className="grid grid-cols-2 gap-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
                 <div className="col-span-2 text-[11px] font-bold uppercase tracking-wider text-cyan-400">📊 Токеномика</div>
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Эмиссия *</label>
@@ -295,7 +295,7 @@ function MinterApp() {
                     required
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
                   />
                 </div>
                 <div>
@@ -305,13 +305,13 @@ function MinterApp() {
                     required
                     value={decimals}
                     onChange={(e) => setDecimals(e.target.value)}
-                    className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
                   />
                 </div>
               </div>
 
               {/* Пул ликвидности */}
-              <div className="space-y-3 bg-[#0e121b]/60 p-3.5 rounded-2xl border border-cyan-500/20 shadow-inner">
+              <div className="space-y-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-cyan-500/30 shadow-inner">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer select-none">
                     <input
@@ -324,7 +324,7 @@ function MinterApp() {
                   </label>
                 </div>
 
-                <div className="bg-[#121824]/90 border border-white/[0.05] rounded-xl p-2.5 text-[11px] text-slate-300 space-y-1.5 leading-relaxed shadow-sm">
+                <div className="bg-[#0e1420]/90 border border-white/[0.05] rounded-xl p-2.5 text-[11px] text-slate-300 space-y-1.5 leading-relaxed shadow-sm">
                   <p className="text-cyan-400 font-semibold">⚡️ Как работает блокировка:</p>
                   <p>
                     Ликвидность загружается в соотношении <b>1 токен = 1 TON</b> (начиная с 1 TON). Остаток монет поступает на ваш кошелек. Пул автоматически блокируется смарт-контрактом.
@@ -352,7 +352,7 @@ function MinterApp() {
                       max="100000"
                       value={liquidityAmount}
                       onChange={(e) => setLiquidityAmount(e.target.value)}
-                      className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                      className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
                     />
                     <p className="text-[10px] text-slate-400 bg-cyan-500/5 p-2 rounded-lg border border-cyan-500/10 leading-relaxed">
                       ✨ <strong className="text-cyan-300">Пример:</strong> При эмиссии в {amount || '1,000,000'} монет стартовая ценность актива зафиксирует рыночную капитализацию на старте 🔥
@@ -361,13 +361,13 @@ function MinterApp() {
                 )}
               </div>
 
-              {/* Кнопка создания / подключения */}
+              {/* Ультра-топовая синяя кнопка подключения / создания */}
               <div className="pt-1">
                 {!userAddress ? (
                   <button
                     type="button"
                     onClick={handleConnectWallet}
-                    className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/25 active:scale-[0.98]"
+                    className="w-full py-4 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97] ring-1 ring-white/20"
                   >
                     Подключить кошелек
                   </button>
@@ -376,14 +376,14 @@ function MinterApp() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/30 active:scale-[0.98]"
+                      className="w-full py-4 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97] ring-1 ring-white/30"
                     >
                       {loading ? 'Создание заявки...' : `Создать токен (${totalDisplayCost} TON)`}
                     </button>
                     <button
                       type="button"
                       onClick={handleConnectWallet}
-                      className="w-full py-2 bg-[#0e121b] border border-white/[0.07] hover:bg-[#1a2333] text-slate-400 text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                      className="w-full py-2.5 bg-[#090d16] border border-white/[0.08] hover:bg-[#151c2c] text-slate-400 text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                       Кошелек: {formatAddress(userAddress)} (Сменить)
@@ -404,14 +404,14 @@ function MinterApp() {
                   <button
                     type="button"
                     onClick={handleConnectWallet}
-                    className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/25 active:scale-[0.98]"
+                    className="w-full py-4 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97] ring-1 ring-white/20"
                   >
                     Подключить кошелек
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.05] space-y-3 shadow-inner">
+                  <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] space-y-3 shadow-inner">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                       <span>⚙️</span> Панель управления токеном
                     </div>
@@ -425,12 +425,12 @@ function MinterApp() {
                           setManageTokenAddress(e.target.value);
                           checkTokenOwnership(e.target.value);
                         }}
-                        className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                        className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
                       />
                     </div>
 
                     {manageTokenAddress && (
-                      <div className="text-xs text-slate-400 bg-[#121824] p-2.5 rounded-xl border border-white/[0.05] flex justify-between items-center shadow-sm">
+                      <div className="text-xs text-slate-400 bg-[#0e1420] p-2.5 rounded-xl border border-white/[0.05] flex justify-between items-center shadow-sm">
                         <span>Статус:</span>
                         <span className="font-mono text-cyan-400 font-bold">
                           {checkingOwner ? 'Проверка...' : tokenOwner || 'Готов к работе'}
@@ -445,13 +445,14 @@ function MinterApp() {
                         placeholder="1000"
                         value={actionAmount}
                         onChange={(e) => setActionAmount(e.target.value)}
-                        className="w-full bg-[#121824] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                        className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2.5">
-                    <div className="bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
+                  {/* Топовые кнопки управления с мягким неоновым свечением */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
                       <div>
                         <div className="text-xs font-bold text-slate-200">🔥 Сжечь токены</div>
                         <div className="text-[10px] text-slate-400">Стоимость услуги: 0.5 TON</div>
@@ -460,13 +461,13 @@ function MinterApp() {
                         type="button"
                         disabled={loading}
                         onClick={() => handleAction('BURN')}
-                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-95"
+                        className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-cyan-500/25 active:scale-95"
                       >
                         Сжечь (0.5 TON)
                       </button>
                     </div>
 
-                    <div className="bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
+                    <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
                       <div>
                         <div className="text-xs font-bold text-slate-200">🪙 Доминтить (Минт)</div>
                         <div className="text-[10px] text-slate-400">Стоимость услуги: 0.5 TON</div>
@@ -475,13 +476,13 @@ function MinterApp() {
                         type="button"
                         disabled={loading}
                         onClick={() => handleAction('MINT')}
-                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-95"
+                        className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-cyan-500/25 active:scale-95"
                       >
                         Минт (0.5 TON)
                       </button>
                     </div>
 
-                    <div className="bg-[#0e121b]/60 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
+                    <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
                       <div>
                         <div className="text-xs font-bold text-slate-200">🛑 Отказ от прав</div>
                         <div className="text-[10px] text-slate-400">Стоимость услуги: 0.5 TON</div>
@@ -490,7 +491,7 @@ function MinterApp() {
                         type="button"
                         disabled={loading}
                         onClick={() => handleAction('REVOKE')}
-                        className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold text-xs rounded-xl transition-all shadow-md shadow-red-500/10 active:scale-95"
+                        className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold text-xs rounded-xl transition-all shadow-md shadow-red-500/10 active:scale-95"
                       >
                         Отказ (0.5 TON)
                       </button>
@@ -502,7 +503,7 @@ function MinterApp() {
           )}
 
           {/* Информационный футер */}
-          <div className="bg-[#0e121b]/80 rounded-2xl p-3 border border-white/[0.05] text-[11px] text-slate-400 space-y-1 shadow-inner">
+          <div className="bg-[#090d16]/80 rounded-2xl p-3 border border-white/[0.05] text-[11px] text-slate-400 space-y-1 shadow-inner">
             <p className="flex justify-between">
               <span>Статус сети:</span> <span className="text-emerald-400 font-medium">TON Mainnet Online</span>
             </p>
