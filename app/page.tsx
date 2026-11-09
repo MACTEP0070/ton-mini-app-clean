@@ -19,10 +19,8 @@ function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
-  // Добавлена 5-я вкладка 'game'
-  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('game');
 
-  // Кастомные уведомления (Toasts)
   const [toasts, setToasts] = useState<Toast[]>([]);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now();
@@ -37,10 +35,9 @@ function MinterApp() {
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3500);
+    }, 3000);
   };
 
-  // Telegram профиль
   const [tgUser, setTgUser] = useState<{ id: string; name: string; username?: string }>({
     id: 'guest_user',
     name: 'Гость',
@@ -63,12 +60,11 @@ function MinterApp() {
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Раздача GRAM-START
+  // Раздача
   const [presaleAmount, setPresaleAmount] = useState('1');
   const [participating, setParticipating] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawInputAmount, setWithdrawInputAmount] = useState('100000');
-  
   const [totalRaised, setTotalRaised] = useState(68203);
   const HARD_CAP = 100000;
 
@@ -82,7 +78,7 @@ function MinterApp() {
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // --- Состояние Игры (Notcoin кликер) ---
+  // Игра (Notcoin стиль)
   const [gameScore, setGameScore] = useState<number>(0);
   const [energy, setEnergy] = useState<number>(1000);
   const [maxEnergy, setMaxEnergy] = useState<number>(1000);
@@ -91,7 +87,7 @@ function MinterApp() {
   const [energyLimitLevel, setEnergyLimitLevel] = useState<number>(1);
   const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number }[]>([]);
 
-  // Таймер до начисления в стейкинге
+  // Таймер стейкинга
   const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
 
   useEffect(() => {
@@ -105,7 +101,6 @@ function MinterApp() {
       });
     }, 1000);
 
-    // Восстановление энергии кликера каждые 1 секунду
     const energyTimer = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
     }, 1000);
@@ -136,7 +131,6 @@ function MinterApp() {
           if (ref !== currentId) {
             setReferrerId(ref);
             localStorage.setItem(`referrer_${currentId}`, ref);
-            
             const refBalanceKey = `gram_balance_${ref}`;
             const currentRefBal = parseFloat(localStorage.getItem(refBalanceKey) || '0');
             localStorage.setItem(refBalanceKey, (currentRefBal + 100).toString());
@@ -147,7 +141,6 @@ function MinterApp() {
         setTgUser({ id: currentId, name: 'Web User' });
       }
 
-      // Загрузка данных игрока и балансов
       const savedBalance = localStorage.getItem(`gram_balance_${currentId}`);
       if (savedBalance) setUserGramBalance(parseFloat(savedBalance));
 
@@ -195,7 +188,7 @@ function MinterApp() {
     setActiveTab(tab);
   };
 
-  // --- Логика кликера (Notcoin) ---
+  // Клик по кастомной монете
   const handleCoinClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (energy < tapPower) {
       showToast('Недостаточно энергии!', 'info');
@@ -211,14 +204,12 @@ function MinterApp() {
     setGameScore(newScore);
     localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
 
-    // Добавляем летающую цифру при клике
     const newId = Date.now() + Math.random();
     setFloatingNumbers((prev) => [...prev, { id: newId, x, y, val: tapPower }]);
     setTimeout(() => {
       setFloatingNumbers((prev) => prev.filter((item) => item.id !== newId));
     }, 800);
 
-    // Легкая вибрация телефона
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
       (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
@@ -230,16 +221,14 @@ function MinterApp() {
       showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
       return;
     }
-
     const newScore = gameScore - cost;
     const newLvl = multitapLevel + 1;
     setGameScore(newScore);
     setMultitapLevel(newLvl);
     setTapPower(newLvl);
-
     localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
     localStorage.setItem(`game_multitap_${tgUser.id}`, newLvl.toString());
-    showToast(`Успешно улучшен Multitap до ур. ${newLvl}! ⚡`, 'success');
+    showToast(`Multitap повышен до ур. ${newLvl}! ⚡`, 'success');
   };
 
   const upgradeEnergyLimit = () => {
@@ -248,7 +237,6 @@ function MinterApp() {
       showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
       return;
     }
-
     const newScore = gameScore - cost;
     const newLvl = energyLimitLevel + 1;
     setGameScore(newScore);
@@ -256,10 +244,9 @@ function MinterApp() {
     const newMaxEnergy = 1000 + (newLvl - 1) * 500;
     setMaxEnergy(newMaxEnergy);
     setEnergy(newMaxEnergy);
-
     localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
     localStorage.setItem(`game_energylimit_${tgUser.id}`, newLvl.toString());
-    showToast(`Энергия увеличена до ур. ${newLvl}! 🔋`, 'success');
+    showToast(`Энергия повышена до ур. ${newLvl}! 🔋`, 'success');
   };
 
   const handleCheckSubscription = () => {
@@ -271,7 +258,7 @@ function MinterApp() {
         addGramTokens(100);
         showToast('Спасибо за подписку! +100 GRAM-START 🎉', 'success');
       } else {
-        showToast('Бонус за подписку уже получен!', 'info');
+        showToast('Бонус уже получен!', 'info');
       }
     }, 1500);
   };
@@ -283,18 +270,11 @@ function MinterApp() {
       const res = await fetch(`https://toncenter.com/api/v2/runGetMethod`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: tokenAddr,
-          method: 'get_jetton_data',
-          stack: []
-        })
+        body: JSON.stringify({ address: tokenAddr, method: 'get_jetton_data', stack: [] })
       });
       const data = await res.json();
-      if (data.ok) {
-        setTokenOwner("Доступ разрешен (Владелец подтвержден)");
-      } else {
-        setTokenOwner("Контракт проверен");
-      }
+      if (data.ok) setTokenOwner("Владелец подтвержден");
+      else setTokenOwner("Контракт проверен");
     } catch (e) {
       setTokenOwner("Статус: Активен");
     } finally {
@@ -309,18 +289,12 @@ function MinterApp() {
 
   const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userAddress) {
-      showToast('Сначала подключите кошелек!', 'error');
-      return;
-    }
-    if (!name || !symbol || !amount || !imageUri) {
-      showToast('Заполните все обязательные поля!', 'error');
-      return;
-    }
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
+    if (!name || !symbol || !amount || !imageUri) { showToast('Заполните поля!', 'error'); return; }
 
     setLoading(true);
     try {
-      const commentText = `CREATE | Name:${name} | Symbol:${symbol} | Supply:${amount} | Logo:${imageUri} | LiqPool:${addLiquidity ? 'YES' : 'NO'} | LiqAmount:${liqVal} | Owner:${userAddress}`;
+      const commentText = `CREATE | Name:${name} | Symbol:${symbol} | Supply:${amount} | Logo:${imageUri} | Owner:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
 
       const transaction = {
@@ -330,190 +304,120 @@ function MinterApp() {
 
       await tonConnectUI.sendTransaction(transaction);
       addGramTokens(100);
-      showToast('Заявка на создание токена отправлена! +100 GRAM-START 🎉', 'success');
+      showToast('Заявка отправлена! +100 GRAM-START 🎉', 'success');
     } catch (err: any) {
-      console.error(err);
-      showToast('Транзакция отменена пользователем.', 'error');
+      showToast('Транзакция отменена.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleAction = async (actionType: 'BURN' | 'MINT' | 'REVOKE') => {
-    if (!userAddress) {
-      showToast('Подключите кошелек!', 'error');
-      return;
-    }
-    if (!manageTokenAddress) {
-      showToast('Введите адрес токена!', 'error');
-      return;
-    }
-    if ((actionType === 'BURN' || actionType === 'MINT') && !actionAmount) {
-      showToast('Введите количество токенов!', 'error');
-      return;
-    }
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
+    if (!manageTokenAddress) { showToast('Введите адрес токена!', 'error'); return; }
 
     setLoading(true);
     try {
-      const serviceFee = 0.5;
-      let commentText = actionType === 'BURN' 
-        ? `ACTION:BURN | Token:${manageTokenAddress} | Amount:${actionAmount} | Owner:${userAddress}`
-        : actionType === 'MINT' 
-        ? `ACTION:MINT | Token:${manageTokenAddress} | Amount:${actionAmount} | Owner:${userAddress}`
-        : `ACTION:REVOKE | Token:${manageTokenAddress} | Owner:${userAddress}`;
-
+      let commentText = `ACTION:${actionType} | Token:${manageTokenAddress} | Owner:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano(serviceFee.toString()).toString(), payload: commentCell.toBoc().toString('base64') }],
+        messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano('0.5').toString(), payload: commentCell.toBoc().toString('base64') }],
       };
 
       await tonConnectUI.sendTransaction(transaction);
       addGramTokens(100);
-      showToast('Запрос успешно выполнен! +100 GRAM-START', 'success');
-    } catch (err: any) {
-      console.error(err);
-      showToast('Транзакция отменена.', 'error');
+      showToast('Успешно выполнено! +100 GRAM', 'success');
+    } catch (err) {
+      showToast('Отменено.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handlePresaleParticipate = async () => {
-    if (!userAddress) {
-      showToast('Подключите кошелек для участия в раздаче!', 'error');
-      return;
-    }
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
     const tonVal = parseFloat(presaleAmount);
-    if (isNaN(tonVal) || tonVal <= 0) {
-      showToast('Введите корректную сумму в TON', 'error');
-      return;
-    }
+    if (isNaN(tonVal) || tonVal <= 0) { showToast('Введите сумму TON', 'error'); return; }
 
     setParticipating(true);
     try {
-      const commentText = `PRESALE_GRAM_START | Amount:${tonVal}TON | Buyer:${userAddress} | Ref:${referrerId || 'none'}`;
+      const commentText = `PRESALE_GRAM_START | Amount:${tonVal}TON | Buyer:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
-
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano(tonVal.toString()).toString(), payload: commentCell.toBoc().toString('base64') }],
       };
 
       await tonConnectUI.sendTransaction(transaction);
-
       const tokensBought = tonVal * 1000;
       addGramTokens(tokensBought);
       setTotalRaised((prev) => prev + tonVal);
-
-      showToast(`Выкупено ${tokensBought.toLocaleString()} GRAM-START за ${tonVal} TON! 💎`, 'success');
-    } catch (err: any) {
-      console.error(err);
-      showToast('Транзакция отменена.', 'error');
+      showToast(`Выкупено ${tokensBought.toLocaleString()} токенов! 💎`, 'success');
+    } catch (err) {
+      showToast('Отменено.', 'error');
     } finally {
       setParticipating(false);
     }
   };
 
   const handleWithdrawTokens = async () => {
-    if (!userAddress) {
-      showToast('Подключите кошелек для вывода!', 'error');
-      return;
-    }
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
     const amountToWithdraw = parseFloat(withdrawInputAmount);
-    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) {
-      showToast('Минимум для вывода: 100,000 GRAM-START!', 'error');
-      return;
-    }
-    if (amountToWithdraw > userGramBalance) {
-      showToast('Сумма превышает ваш доступный баланс!', 'error');
-      return;
-    }
+    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) { showToast('Минимум 100,000 GRAM-START', 'error'); return; }
+    if (amountToWithdraw > userGramBalance) { showToast('Превышен баланс', 'error'); return; }
 
     setWithdrawing(true);
     try {
-      const commentText = `Вывод: ${amountToWithdraw.toLocaleString()} GRAM-START | Wallet:${userAddress}`;
+      const commentText = `Вывод: ${amountToWithdraw} | Wallet:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
-
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano('0.05').toString(), payload: commentCell.toBoc().toString('base64') }],
       };
 
       await tonConnectUI.sendTransaction(transaction);
-      
       const newBal = userGramBalance - amountToWithdraw;
       setUserGramBalance(newBal);
       localStorage.setItem(`gram_balance_${tgUser.id}`, newBal.toString());
-
-      showToast(`Запрос на вывод ${amountToWithdraw.toLocaleString()} GRAM-START отправлен!`, 'success');
-    } catch (err: any) {
-      console.error(err);
-      showToast('Вывод отменен.', 'error');
+      showToast('Запрос на вывод отправлен!', 'success');
+    } catch (err) {
+      showToast('Отменено.', 'error');
     } finally {
       setWithdrawing(false);
     }
   };
 
   const handleStakeAction = async (isDeposit: boolean) => {
-    if (!userAddress) {
-      showToast('Подключите кошелек!', 'error');
-      return;
-    }
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
     const val = parseFloat(stakeInputAmount);
-    if (isNaN(val) || val <= 0) {
-      showToast('Введите корректную сумму', 'error');
-      return;
-    }
-
-    if (!isDeposit && val > stakedGramBalance) {
-      showToast('Нельзя снять больше, чем в стейкинге!', 'error');
-      return;
-    }
+    if (isNaN(val) || val <= 0) { showToast('Введите сумму', 'error'); return; }
+    if (!isDeposit && val > stakedGramBalance) { showToast('Превышен стейкинг', 'error'); return; }
 
     if (isDeposit) setStakingLoading(true);
     else setUnstakeLoading(true);
 
     try {
-      let transaction;
-      if (isDeposit) {
-        const commentText = `STAKE_DEPOSIT | Asset:GRAM | Amount:${val} | User:${userAddress}`;
-        const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
-
-        transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [{
-            address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano(val.toString()).toString(),
-            payload: commentCell.toBoc().toString('base64'),
-          }],
-        };
-      } else {
-        const commentText = `UNSTAKE | User:${userAddress} | Amount:${val} GRAM`;
-        const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
-
-        transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [{
-            address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano('0.1').toString(),
-            payload: commentCell.toBoc().toString('base64'),
-          }],
-        };
-      }
+      const commentText = isDeposit ? `STAKE_DEPOSIT | Amount:${val}` : `UNSTAKE | Amount:${val}`;
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: FEE_RECIPIENT_ADDRESS,
+          amount: toNano(isDeposit ? val.toString() : '0.1').toString(),
+          payload: commentCell.toBoc().toString('base64'),
+        }],
+      };
 
       await tonConnectUI.sendTransaction(transaction);
-
       setStakedGramBalance((prev) => {
         const updated = isDeposit ? prev + val : Math.max(0, prev - val);
         localStorage.setItem(`stake_${tgUser.id}_GRAM`, updated.toString());
         return updated;
       });
-
-      showToast(isDeposit ? `Успешно в стейкинге: ${val} GRAM 🚀` : `Запрос на снятие ${val} GRAM отправлен! 💎`, 'success');
-    } catch (err: any) {
-      console.error(err);
-      showToast('Операция стейкинга отменена.', 'error');
+      showToast(isDeposit ? 'Успешно в стейкинге!' : 'Запрос на снятие отправлен!', 'success');
+    } catch (err) {
+      showToast('Отменено.', 'error');
     } finally {
       setStakingLoading(false);
       setUnstakeLoading(false);
@@ -522,34 +426,22 @@ function MinterApp() {
 
   const shareRefLink = () => {
     const refLink = `https://t.me/your_bot_username?start=ref_${tgUser.id}`;
-    if (navigator.share) {
-      navigator.share({
-        title: 'TON Market Minter',
-        text: 'Зарабатывай токены, создавай свои проекты и получай бонусы в GRAM-START!',
-        url: refLink,
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(refLink);
-      showToast('Реферальная ссылка скопирована!', 'success');
-    }
+    navigator.clipboard.writeText(refLink);
+    showToast('Реферальная ссылка скопирована!', 'success');
   };
 
   const progressPercent = Math.min(100, (totalRaised / HARD_CAP) * 100).toFixed(1);
   const calculatedGramOutput = (parseFloat(presaleAmount || '0') * 1000).toLocaleString();
 
-  const currentStakeVal = parseFloat(stakeInputAmount || '0');
-  const weeklyReward = ((currentStakeVal * 0.30) / 52).toFixed(2);
-  const yearlyReward = (currentStakeVal * 0.30).toFixed(2);
-
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-between font-sans px-3 py-3 select-none overflow-x-hidden">
       
-      {/* Тост-уведомления */}
-      <div className="fixed top-4 z-50 flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none">
+      {/* Тост уведомления */}
+      <div className="fixed top-3 z-50 flex flex-col gap-2 w-full max-w-sm px-3 pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto p-3 rounded-2xl text-xs font-medium shadow-2xl backdrop-blur-xl border transition-all animate-bounce flex items-center gap-2.5 ${
+            className={`pointer-events-auto p-3 rounded-2xl text-xs font-semibold shadow-2xl backdrop-blur-xl border flex items-center gap-2 ${
               t.type === 'success' ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200' :
               t.type === 'error' ? 'bg-red-950/90 border-red-500/40 text-red-200' :
               'bg-blue-950/90 border-blue-500/40 text-blue-200'
@@ -561,35 +453,34 @@ function MinterApp() {
         ))}
       </div>
 
-      {/* Шапка с профилем Telegram */}
-      <header className="w-full max-w-md pt-2 pb-3">
-        <div className="flex items-center justify-between bg-[#111726]/95 border border-white/[0.08] rounded-2xl p-3.5 shadow-2xl mb-4 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 font-bold text-sm uppercase">
+      {/* Верхняя панель (адаптивная без переносов) */}
+      <header className="w-full max-w-md pt-1 pb-2">
+        <div className="flex items-center justify-between bg-[#111726]/95 border border-white/[0.08] rounded-2xl p-3 shadow-xl mb-2 backdrop-blur-xl">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm uppercase shadow-md">
               {tgUser.name.charAt(0)}
             </div>
-            <div>
-              <div className="text-xs font-bold text-white tracking-wide truncate max-w-[120px]">{tgUser.name}</div>
+            <div className="overflow-hidden">
+              <div className="text-xs font-bold text-white truncate max-w-[100px]">{tgUser.name}</div>
               <div className="text-[10px] text-cyan-400 font-mono">ID: {tgUser.id}</div>
             </div>
           </div>
-
-          <div className="flex items-center justify-end shrink-0">
+          <div className="scale-90 origin-right">
             <TonConnectButton />
           </div>
         </div>
 
-        {/* 5 вкладок */}
-        <div className="grid grid-cols-5 gap-1 bg-[#111726]/95 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
+        {/* 5 компактных вкладок в ряд без переносов */}
+        <div className="grid grid-cols-5 gap-1 bg-[#111726]/95 p-1 rounded-2xl border border-white/[0.08] shadow-lg">
           {(['create', 'manage', 'presale', 'staking', 'game'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => handleTabChange(tab)}
-              className={`py-2 text-[9px] font-bold rounded-xl transition-all duration-300 ${
+              className={`py-2 text-[9px] font-extrabold rounded-xl transition-all truncate px-0.5 ${
                 activeTab === tab
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20 scale-[1.02]'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md ring-1 ring-white/20'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {tab === 'create' ? '✨ Создать' : tab === 'manage' ? '🛠 Управлять' : tab === 'presale' ? '🚀 Раздача' : tab === 'staking' ? '🔒 Стейк' : '🎮 Игра'}
@@ -598,403 +489,218 @@ function MinterApp() {
         </div>
       </header>
 
-      {/* Основной контейнер */}
-      <main className="w-full max-w-md my-1 flex-1">
-        <div className="bg-[#111726]/95 border border-white/[0.08] rounded-3xl p-4.5 shadow-2xl space-y-4 backdrop-blur-2xl">
+      {/* Контент */}
+      <main className="w-full max-w-md my-1 flex-1 pb-4">
+        <div className="bg-[#111726]/95 border border-white/[0.08] rounded-3xl p-4 shadow-2xl space-y-3.5 backdrop-blur-2xl">
           
           {/* ВКЛАДКА 1: СОЗДАНИЕ */}
           {activeTab === 'create' && (
-            <form onSubmit={handleMint} className="space-y-4 animate-fadeIn">
-              <div className="space-y-3 bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
-                  <span>📦 Основные параметры</span>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Бонус: +100 GRAM</span>
+            <form onSubmit={handleMint} className="space-y-3">
+              <div className="space-y-2.5 bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05]">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex justify-between">
+                  <span>📦 Параметры</span>
+                  <span className="text-[10px] text-emerald-400">+100 GRAM бонус</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Название токена *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Например: Gram Gold"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all shadow-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Символ (Тикер) *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="GOLD"
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 uppercase font-mono transition-all shadow-sm"
-                  />
-                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="Название (например: Gram Gold)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+                <input
+                  type="text"
+                  required
+                  placeholder="Символ (например: GOLD)"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white uppercase font-mono focus:outline-none focus:border-cyan-500"
+                />
               </div>
 
-              <div className="space-y-3 bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                  <span>🖼</span> Брендинг и медиа
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Ссылка на логотип (Image URI) *</label>
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://example.com/logo.png"
-                    value={imageUri}
-                    onChange={(e) => setImageUri(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all shadow-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Описание</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Краткая информация..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 resize-none transition-all shadow-sm"
-                  />
-                </div>
+              <div className="space-y-2.5 bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05]">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">🖼 Медиа</div>
+                <input
+                  type="url"
+                  required
+                  placeholder="Ссылка на логотип (URL)"
+                  value={imageUri}
+                  onChange={(e) => setImageUri(e.target.value)}
+                  className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+                <textarea
+                  rows={2}
+                  placeholder="Описание..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 resize-none focus:outline-none focus:border-cyan-500"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
-                <div className="col-span-2 text-[11px] font-bold uppercase tracking-wider text-cyan-400">📊 Токеномика</div>
+              <div className="grid grid-cols-2 gap-2 bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05]">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Эмиссия *</label>
+                  <label className="block text-[10px] text-slate-400 mb-1">Эмиссия</label>
                   <input
                     type="number"
                     required
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Decimals</label>
+                  <label className="block text-[10px] text-slate-400 mb-1">Decimals</label>
                   <input
                     type="number"
                     required
                     value={decimals}
                     onChange={(e) => setDecimals(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
+                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3 bg-[#070b14]/70 p-3.5 rounded-2xl border border-cyan-500/30 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={addLiquidity}
-                      onChange={(e) => setAddLiquidity(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-700 text-cyan-500 bg-slate-900 focus:ring-cyan-500/20 accent-cyan-400"
-                    />
-                    💧 Пул ликвидности DEX
-                  </label>
-                </div>
-
-                {addLiquidity && (
-                  <div className="pt-2 border-t border-white/[0.05] space-y-2.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-400">Сумма ликвидности:</span>
-                      <span className="text-cyan-400 font-mono font-bold">{liquidityAmount} TON</span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {['5', '10', '50', '100'].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setLiquidityAmount(preset)}
-                          className={`py-1.5 text-xs font-mono rounded-lg border transition-all ${
-                            liquidityAmount === preset
-                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
-                              : 'bg-[#0b101d] border-white/10 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {preset} TON
-                        </button>
-                      ))}
-                    </div>
-
-                    <input
-                      type="range"
-                      min="1"
-                      max="100000"
-                      step="1"
-                      value={liquidityAmount}
-                      onChange={(e) => setLiquidityAmount(e.target.value)}
-                      className="w-full accent-cyan-400 bg-slate-900 cursor-pointer"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {userAddress && (
-                <div className="bg-[#0b101d] border border-white/10 rounded-2xl p-3 text-xs space-y-1.5">
-                  <div className="text-[11px] font-bold text-cyan-400 uppercase tracking-wide mb-1">🧾 Детализация расчета:</div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Базовая комиссия:</span>
-                    <span className="font-mono text-slate-200">0.5 TON</span>
-                  </div>
-                  {addLiquidity && (
-                    <div className="flex justify-between text-slate-400">
-                      <span>Ликвидность DEX:</span>
-                      <span className="font-mono text-slate-200">{liquidityAmount} TON</span>
-                    </div>
-                  )}
-                  <div className="pt-1.5 border-t border-white/10 flex justify-between font-bold">
-                    <span className="text-white">Итого к списанию:</span>
-                    <span className="font-mono text-cyan-400">{totalDisplayCost} TON</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-1">
-                {!userAddress ? (
-                  <div className="text-center py-3 bg-slate-900/60 border border-white/[0.05] rounded-2xl">
-                    <p className="text-xs text-slate-400">Подключите кошелек вверху справа ↗</p>
-                  </div>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-4 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97]"
-                  >
-                    {loading ? 'Создание...' : `Создать токен (${totalDisplayCost} TON)`}
-                  </button>
-                )}
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black text-xs rounded-2xl shadow-lg active:scale-95"
+              >
+                {loading ? 'Создание...' : `Создать (${totalDisplayCost} TON)`}
+              </button>
             </form>
           )}
 
           {/* ВКЛАДКА 2: УПРАВЛЕНИЕ */}
           {activeTab === 'manage' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.05] space-y-3 shadow-inner">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
-                  <span>⚙️ Панель управления</span>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Бонус: +100 GRAM</span>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Адрес токена (Jetton Master) *</label>
-                  <input
-                    type="text"
-                    placeholder="EQ..."
-                    value={manageTokenAddress}
-                    onChange={(e) => {
-                      setManageTokenAddress(e.target.value);
-                      checkTokenOwnership(e.target.value);
-                    }}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
-                  />
-                </div>
-
-                {manageTokenAddress && (
-                  <div className="text-xs text-slate-400 bg-[#0b101d] p-2.5 rounded-xl border border-white/[0.05] flex justify-between items-center">
-                    <span>Статус:</span>
-                    <span className="font-mono text-cyan-400 font-bold">
-                      {checkingOwner ? 'Проверка...' : tokenOwner || 'Активен'}
-                    </span>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Количество для Сжигания / Минта *</label>
-                  <input
-                    type="number"
-                    placeholder="1000"
-                    value={actionAmount}
-                    onChange={(e) => setActionAmount(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
-                  />
-                </div>
+            <div className="space-y-3">
+              <div className="bg-[#070b14]/70 p-3 rounded-2xl border border-white/[0.05] space-y-2.5">
+                <div className="text-[11px] font-bold text-cyan-400 uppercase">⚙️ Управление</div>
+                <input
+                  type="text"
+                  placeholder="Адрес токена (EQ...)"
+                  value={manageTokenAddress}
+                  onChange={(e) => {
+                    setManageTokenAddress(e.target.value);
+                    checkTokenOwnership(e.target.value);
+                  }}
+                  className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Количество"
+                  value={actionAmount}
+                  onChange={(e) => setActionAmount(e.target.value)}
+                  className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                />
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
-                <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-slate-200">🔥 Сжечь токены</div>
-                    <div className="text-[10px] text-slate-400">Стоимость: 0.5 TON</div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleAction('BURN')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow-md active:scale-95"
-                  >
-                    Сжечь
-                  </button>
-                </div>
-
-                <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-slate-200">🪙 Доминтить</div>
-                    <div className="text-[10px] text-slate-400">Стоимость: 0.5 TON</div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleAction('MINT')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow-md active:scale-95"
-                  >
-                    Минт
-                  </button>
-                </div>
-
-                <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-slate-200">🛑 Отказ от прав</div>
-                    <div className="text-[10px] text-slate-400">Стоимость: 0.5 TON</div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleAction('REVOKE')}
-                    className="px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs rounded-xl active:scale-95"
-                  >
-                    Отказ
-                  </button>
-                </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleAction('BURN')}
+                  className="py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white rounded-xl border border-white/10"
+                >
+                  🔥 Сжечь
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleAction('MINT')}
+                  className="py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white rounded-xl border border-white/10"
+                >
+                  🪙 Минт
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleAction('REVOKE')}
+                  className="py-2.5 bg-red-500/20 text-red-400 text-xs font-bold rounded-xl border border-red-500/30"
+                >
+                  🛑 Отказ
+                </button>
               </div>
             </div>
           )}
 
           {/* ВКЛАДКА 3: РАЗДАЧА */}
           {activeTab === 'presale' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3.5 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                    <span>🚀</span> Раздача GRAM-START
-                  </span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-bold animate-pulse">
-                    ● ACTIVE
-                  </span>
+            <div className="space-y-3">
+              <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase text-cyan-400">🚀 Раздача GRAM-START</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
                 </div>
 
-                <div className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-indigo-500/10 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] text-cyan-300 font-semibold uppercase tracking-wider">Баланс GRAM-START</div>
-                      <div className="text-xl font-black font-mono text-white mt-0.5">{userGramBalance.toLocaleString()}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-slate-400">Telegram аккаунт</div>
-                      <div className="text-xs font-mono text-slate-300">{tgUser.name}</div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-cyan-500/20 space-y-2">
-                    <label className="block text-[11px] font-medium text-slate-300">Вывод токенов (Мин. 100,000):</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        min="100000"
-                        value={withdrawInputAmount}
-                        onChange={(e) => setWithdrawInputAmount(e.target.value)}
-                        placeholder="100000"
-                        className="w-full bg-[#0b101d] border border-cyan-500/30 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
-                      />
-                      <button
-                        type="button"
-                        disabled={withdrawing || !userAddress}
-                        onClick={handleWithdrawTokens}
-                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl whitespace-nowrap active:scale-95"
-                      >
-                        {withdrawing ? '...' : 'Вывести'}
-                      </button>
-                    </div>
+                <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 p-3 rounded-xl border border-cyan-500/30 space-y-2">
+                  <div className="text-[10px] text-cyan-300 uppercase">Баланс: <strong className="text-white text-sm">{userGramBalance.toLocaleString()}</strong> GRAM</div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="100000"
+                      value={withdrawInputAmount}
+                      onChange={(e) => setWithdrawInputAmount(e.target.value)}
+                      placeholder="Мин. 100000"
+                      className="w-full bg-[#0b101d] border border-cyan-500/30 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={withdrawing || !userAddress}
+                      onClick={handleWithdrawTokens}
+                      className="px-3 py-1.5 bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl"
+                    >
+                      Вывести
+                    </button>
                   </div>
                 </div>
 
-                <div className="bg-[#0b101d] p-3.5 rounded-xl border border-cyan-500/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>📊</span> Наш токен на бирже
-                    </span>
-                    <span className="text-[9px] text-cyan-400 font-mono">DeDust DEX</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Купить или продать GRAM-START на децентрализованной бирже DeDust:
-                  </p>
-                  <a
-                    href="https://dedust.io/coins/EQDTbAgIlGAYiqrylLsfX871Sx6ZpecNKIQLo27WgtfgrGod"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs text-center rounded-xl shadow-md"
-                  >
-                    💱 Открыть Swap на DeDust.io
-                  </a>
-                </div>
+                <a
+                  href="https://dedust.io/coins/EQDTbAgIlGAYiqrylLsfX871Sx6ZpecNKIQLo27WgtfgrGod"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-xs text-center rounded-xl shadow"
+                >
+                  💱 Swap на DeDust.io
+                </a>
 
-                <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-white">📢 Подписка на канал</div>
-                    <div className="text-[10px] text-cyan-400">Награда: +100 GRAM-START</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCheckSubscription}
-                    disabled={isSubscribed}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
-                      isSubscribed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white'
-                    }`}
-                  >
-                    {isSubscribed ? '✓ Выполнено' : 'Подписаться'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={shareRefLink}
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs rounded-xl border border-white/10"
+                >
+                  👥 Реферальная ссылка (+100 за друга)
+                </button>
 
-                <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-white">👥 Реферальная программа</div>
-                    <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">+100 за друга</span>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-300">Сбор: <strong className="text-cyan-400">{totalRaised} TON</strong></span>
+                    <span className="text-slate-400">{progressPercent}%</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">Приглашайте друзей и зарабатывайте токены вместе!</p>
-                  <button
-                    type="button"
-                    onClick={shareRefLink}
-                    className="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition"
-                  >
-                    📤 Поделиться ссылкой с другом
-                  </button>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-300">Сбор: <strong className="text-cyan-400 font-mono">{totalRaised.toLocaleString()} TON</strong></span>
-                    <span className="text-slate-400 font-mono">({progressPercent}%)</span>
-                  </div>
-                  <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
-                    <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-white/10">
+                    <div className="bg-cyan-500 h-full" style={{ width: `${progressPercent}%` }}></div>
                   </div>
                 </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <label className="block text-xs font-medium text-slate-300">Сумма покупки (TON) *</label>
+                <div className="space-y-1">
                   <input
                     type="number"
                     step="0.01"
                     min="0.1"
                     value={presaleAmount}
                     onChange={(e) => setPresaleAmount(e.target.value)}
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
+                    className="w-full bg-[#0b101d] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
-                  <p className="text-[10px] text-cyan-300/80 font-mono">💡 Вы получите: <strong>{calculatedGramOutput} GRAM-START</strong></p>
+                  <p className="text-[10px] text-cyan-300">Получите: <strong>{calculatedGramOutput} GRAM-START</strong></p>
                 </div>
 
                 <button
                   type="button"
                   disabled={participating || !userAddress}
                   onClick={handlePresaleParticipate}
-                  className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 text-slate-950 font-black text-sm rounded-xl shadow-xl active:scale-[0.97]"
+                  className="w-full py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black text-xs rounded-xl shadow"
                 >
-                  {participating ? 'Обработка...' : `🚀 Купить за ${presaleAmount || 0} TON`}
+                  Купить за {presaleAmount || 0} TON
                 </button>
               </div>
             </div>
@@ -1002,114 +708,74 @@ function MinterApp() {
 
           {/* ВКЛАДКА 4: СТЕЙКИНГ */}
           {activeTab === 'staking' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3.5 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                    <span>🔒</span> Стейкинг GRAM (30% APY)
-                  </span>
-                  <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-bold font-mono">
-                    APY: 30%
-                  </span>
+            <div className="space-y-3">
+              <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase text-cyan-400">🔒 Стейкинг GRAM (30% APY)</span>
                 </div>
 
-                <div className="bg-[#0b101d] p-3 rounded-xl border border-cyan-500/20 flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] text-slate-400 uppercase">До начисления наград:</div>
-                    <div className="text-sm font-black font-mono text-cyan-400 mt-0.5">
-                      {timeLeft.days}д {timeLeft.hours}ч {timeLeft.minutes}м {timeLeft.seconds}с
-                    </div>
-                  </div>
-                  <div className="text-right text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-1 rounded-lg">
-                    Раз в неделю
-                  </div>
+                <div className="bg-[#0b101d] p-2.5 rounded-xl border border-cyan-500/20 text-xs flex justify-between">
+                  <span className="text-slate-400">До наград:</span>
+                  <span className="font-mono text-cyan-400 font-bold">{timeLeft.days}д {timeLeft.hours}ч {timeLeft.minutes}м</span>
                 </div>
 
-                <div className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-indigo-500/10 p-3.5 rounded-2xl border border-cyan-500/30 flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] text-cyan-300 font-semibold uppercase">В стейкинге (GRAM)</div>
-                    <div className="text-xl font-black font-mono text-white mt-0.5">{stakedGramBalance.toLocaleString()}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-400">Аккаунт</div>
-                    <div className="text-xs font-mono text-slate-300">{tgUser.name}</div>
-                  </div>
+                <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 p-3 rounded-xl border border-cyan-500/30">
+                  <div className="text-[10px] text-cyan-300 uppercase">В стейкинге:</div>
+                  <div className="text-lg font-black font-mono text-white">{stakedGramBalance.toLocaleString()} GRAM</div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-slate-300">Сумма операции (GRAM):</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={stakeInputAmount}
-                    onChange={(e) => setStakeInputAmount(e.target.value)}
-                    placeholder="100"
-                    className="w-full bg-[#0b101d] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={stakeInputAmount}
+                  onChange={(e) => setStakeInputAmount(e.target.value)}
+                  className="w-full bg-[#0b101d] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                />
 
-                <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 text-xs space-y-1.5 font-mono">
-                  <div className="text-[11px] font-bold text-cyan-400">📈 Прогноз доходности (30% APY):</div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Награда за 1 неделю:</span>
-                    <span className="text-emerald-400 font-bold">+{weeklyReward} GRAM</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Награда за 1 год:</span>
-                    <span className="text-emerald-400 font-bold">+{yearlyReward} GRAM</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     disabled={stakingLoading || !userAddress}
                     onClick={() => handleStakeAction(true)}
-                    className="py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black text-xs rounded-xl shadow-md active:scale-[0.97]"
+                    className="py-2.5 bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow"
                   >
-                    {stakingLoading ? '...' : '📥 В стейкинг'}
+                    📥 В стейкинг
                   </button>
                   <button
                     type="button"
                     disabled={unstakeLoading || !userAddress}
                     onClick={() => handleStakeAction(false)}
-                    className="py-3 bg-slate-900 border border-cyan-500/30 text-cyan-300 font-bold text-xs rounded-xl shadow-md active:scale-[0.97]"
+                    className="py-2.5 bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/30"
                   >
-                    {unstakeLoading ? '...' : '📤 Снять'}
+                    📤 Снять
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ВКЛАДКА 5: ИГРА (Notcoin Кликер) */}
+          {/* ВКЛАДКА 5: ИГРА */}
           {activeTab === 'game' && (
-            <div className="space-y-4 animate-fadeIn text-center">
-              <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-4 shadow-inner">
+            <div className="space-y-3 text-center">
+              <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                    🎮 GRAM Clicker (Notcoin Style)
-                  </span>
-                  <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-bold">
-                    ⚡ {tapPower} / тап
-                  </span>
+                  <span className="text-xs font-bold uppercase text-cyan-400">🎮 GRAM Clicker</span>
+                  <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded-full font-bold font-mono">⚡ {tapPower} тап</span>
                 </div>
 
-                {/* Баланс монеток в игре */}
-                <div className="py-2">
-                  <div className="text-[10px] text-slate-400 uppercase tracking-widest">Игровой баланс</div>
-                  <div className="text-3xl font-black font-mono text-white mt-1 tracking-tight">
-                    {gameScore.toLocaleString()} <span className="text-cyan-400 text-base">GRAM</span>
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase">Игровой баланс</div>
+                  <div className="text-2xl font-black font-mono text-white mt-0.5">
+                    {gameScore.toLocaleString()} <span className="text-cyan-400 text-xs">GRAM</span>
                   </div>
                 </div>
 
-                {/* Центральная кликабельная монета */}
-                <div className="relative flex items-center justify-center py-6 select-none">
-                  {/* Летающие числа при тапе */}
+                {/* Центральная кастомная монета */}
+                <div className="relative flex items-center justify-center py-4 select-none">
                   {floatingNumbers.map((item) => (
                     <div
                       key={item.id}
-                      className="absolute text-cyan-300 font-black text-lg font-mono pointer-events-none animate-floatUp z-20"
+                      className="absolute text-cyan-300 font-black text-base font-mono pointer-events-none animate-floatUp z-20"
                       style={{ left: `${item.x}px`, top: `${item.y - 20}px` }}
                     >
                       +{item.val}
@@ -1118,57 +784,54 @@ function MinterApp() {
 
                   <div
                     onClick={handleCoinClick}
-                    className="w-40 h-40 rounded-full bg-gradient-to-tr from-cyan-500 via-sky-400 to-blue-600 flex items-center justify-center shadow-2xl shadow-cyan-500/50 cursor-pointer active:scale-90 transition-transform duration-100 ring-4 ring-cyan-400/20 relative group"
+                    className="w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/20 via-sky-500/20 to-blue-600/20 flex items-center justify-center shadow-2xl shadow-cyan-500/40 cursor-pointer active:scale-90 transition-transform duration-100 p-2 border-2 border-cyan-500/40 relative group"
                   >
-                    <div className="absolute inset-2 rounded-full border border-white/30 flex items-center justify-center bg-gradient-to-b from-transparent to-black/30">
-                      <span className="text-6xl filter drop-shadow-md select-none group-hover:scale-110 transition-transform">💎</span>
-                    </div>
+                    <img 
+                      src="https://cdn.dedust.io/images/jetton:0:d36c08089460188aaaf294bb1f5fcef54b1e99a5e70d28840ba36ed682d7e0ac.webp?v=1794238582" 
+                      alt="GRAM Coin" 
+                      className="w-28 h-28 object-contain rounded-full drop-shadow-2xl select-none group-hover:scale-105 transition-transform pointer-events-none"
+                    />
                   </div>
                 </div>
 
-                {/* Шкала энергии */}
-                <div className="space-y-1.5 text-left">
-                  <div className="flex justify-between text-xs font-mono">
+                {/* Энергия */}
+                <div className="space-y-1 text-left">
+                  <div className="flex justify-between text-[11px] font-mono">
                     <span className="text-slate-300">⚡ Энергия</span>
                     <span className="text-cyan-400">{energy} / {maxEnergy}</span>
                   </div>
-                  <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
-                    <div
-                      className="bg-gradient-to-r from-cyan-500 to-sky-400 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${(energy / maxEnergy) * 100}%` }}
-                    ></div>
+                  <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-white/10">
+                    <div className="bg-gradient-to-r from-cyan-500 to-sky-400 h-full transition-all duration-300" style={{ width: `${(energy / maxEnergy) * 100}%` }}></div>
                   </div>
                 </div>
 
-                {/* Магазин улучшений (Boosters) */}
+                {/* Бустеры */}
                 <div className="pt-2 border-t border-white/10 space-y-2 text-left">
-                  <div className="text-xs font-bold text-cyan-400 uppercase tracking-wide">🛠 Улучшения (Boosters):</div>
+                  <div className="text-[11px] font-bold text-cyan-400 uppercase">🛠 Улучшения:</div>
                   
-                  {/* Улучшение Multitap */}
-                  <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                  <div className="bg-[#0b101d] p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
                     <div>
                       <div className="text-xs font-bold text-white">⚡ Multitap (Ур. {multitapLevel})</div>
-                      <div className="text-[10px] text-cyan-400 font-mono">+{multitapLevel} за 1 тап • Цена: {(multitapLevel * 200).toLocaleString()} GRAM</div>
+                      <div className="text-[9px] text-cyan-400">Цена: {(multitapLevel * 200).toLocaleString()} GRAM</div>
                     </div>
                     <button
                       type="button"
                       onClick={upgradeMultitap}
-                      className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow active:scale-95 whitespace-nowrap"
+                      className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-lg active:scale-95"
                     >
                       Качнуть
                     </button>
                   </div>
 
-                  {/* Улучшение Energy Limit */}
-                  <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                  <div className="bg-[#0b101d] p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
                     <div>
                       <div className="text-xs font-bold text-white">🔋 Energy Limit (Ур. {energyLimitLevel})</div>
-                      <div className="text-[10px] text-cyan-400 font-mono">Макс. {maxEnergy} • Цена: {(energyLimitLevel * 300).toLocaleString()} GRAM</div>
+                      <div className="text-[9px] text-cyan-400">Цена: {(energyLimitLevel * 300).toLocaleString()} GRAM</div>
                     </div>
                     <button
                       type="button"
                       onClick={upgradeEnergyLimit}
-                      className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow active:scale-95 whitespace-nowrap"
+                      className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-lg active:scale-95"
                     >
                       Качнуть
                     </button>
@@ -1178,16 +841,10 @@ function MinterApp() {
             </div>
           )}
 
-          {/* Футер */}
-          <div className="bg-[#070b14]/80 rounded-2xl p-3 border border-white/[0.05] text-[11px] text-slate-400 space-y-1 shadow-inner">
-            <p className="flex justify-between">
-              <span>Статус сети:</span> <span className="text-emerald-400 font-medium">TON Mainnet Online</span>
-            </p>
-          </div>
         </div>
       </main>
 
-      <footer className="w-full max-w-md text-center pt-2 pb-1 text-[10px] text-slate-500">
+      <footer className="w-full max-w-md text-center pb-1 text-[9px] text-slate-500">
         TON Market Launchpad • Secure Smart Contracts
       </footer>
     </div>
