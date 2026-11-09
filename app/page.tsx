@@ -33,16 +33,9 @@ function MinterApp() {
   const [tokenOwner, setTokenOwner] = useState<string | null>(null);
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Уведомление о копировании
   const [copied, setCopied] = useState(false);
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
-
-  const formatAddress = (addr: string) => {
-    if (!addr) return '';
-    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -177,7 +170,7 @@ function MinterApp() {
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-black">
       
-      {/* Шапка */}
+      {/* Шапка с фиксированной кнопкой в правом верхнем углу */}
       <header className="w-full max-w-md pt-2 pb-3">
         <div className="flex items-center justify-between bg-[#121824]/90 border border-white/[0.08] rounded-2xl p-3.5 shadow-2xl mb-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
@@ -190,7 +183,8 @@ function MinterApp() {
             </div>
           </div>
 
-          <div className="scale-90 origin-right">
+          {/* Фирменная кнопка строго в правом верхнем углу (управляет подключением и сменой кошелька) */}
+          <div className="flex items-center justify-end shrink-0">
             <TonConnectButton />
           </div>
         </div>
@@ -334,7 +328,6 @@ function MinterApp() {
                       <span className="text-cyan-400 font-mono font-bold">{liquidityAmount} TON</span>
                     </div>
 
-                    {/* Быстрые пресеты ликвидности */}
                     <div className="grid grid-cols-4 gap-1.5">
                       {['5', '10', '50', '100'].map((preset) => (
                         <button
@@ -373,7 +366,7 @@ function MinterApp() {
                 )}
               </div>
 
-              {/* Детальный чек расчета стоимости перед отправкой */}
+              {/* Детальный чек расчета стоимости */}
               {userAddress && (
                 <div className="bg-[#0e1420] border border-white/10 rounded-2xl p-3 text-xs space-y-1.5">
                   <div className="text-[11px] font-bold text-cyan-400 uppercase tracking-wide mb-1">🧾 Детализация расчета:</div>
@@ -404,10 +397,7 @@ function MinterApp() {
               <div className="pt-1">
                 {!userAddress ? (
                   <div className="text-center py-3 bg-slate-900/60 border border-white/[0.05] rounded-2xl space-y-2">
-                    <p className="text-xs text-slate-400">Для создания токена подключите кошелек вверху 👆</p>
-                    <div className="flex justify-center">
-                      <TonConnectButton />
-                    </div>
+                    <p className="text-xs text-slate-400">Для создания токена подключите кошелек вверху справа ↗</p>
                   </div>
                 ) : (
                   <button
@@ -427,10 +417,7 @@ function MinterApp() {
               {!userAddress ? (
                 <div className="space-y-3 py-6 text-center">
                   <div className="text-xs text-amber-400 font-medium bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl shadow-inner">
-                    ⚠️ Для доступа к управлению токеном необходимо подключить кошелек!
-                  </div>
-                  <div className="flex justify-center pt-2">
-                    <TonConnectButton />
+                    ⚠️ Для доступа к управлению токеном необходимо подключить кошелек вверху справа!
                   </div>
                 </div>
               ) : (
