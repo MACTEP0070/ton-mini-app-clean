@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   TonConnectUIProvider,
   useTonConnectUI,
@@ -15,7 +15,6 @@ function MinterApp() {
   const userAddress = useTonAddress();
   const wallet = useTonWallet();
 
-  // Добавляем третью вкладку 'presale' (прелистинг / боди кривая в стиле Blum)
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale'>('create');
 
   // Создание токена
@@ -36,9 +35,49 @@ function MinterApp() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Состояние для прелистинга (Blum-style интерактив)
-  const [presaleAmount, setPresaleAmount] = useState('5');
+  // Прелистинг GRAM-START
+  const [presaleAmount, setPresaleAmount] = useState('1'); // В TON
   const [participating, setParticipating] = useState(false);
+  
+  // Общий сбор прелистинга (цель 100.000, собрано 68.203 TON)
+  const [totalRaised, setTotalRaised] = useState(68203);
+  const HARD_CAP = 100000;
+
+  // Telegram ID и персональный баланс GRAM-START пользователя
+  const [tgUserId, setTgUserId] = useState<string>('guest_user');
+  const [userGramBalance, setUserGramBalance] = useState<number>(0);
+
+  // Инициализация Telegram WebApp и загрузка персонального баланса из localStorage по Telegram ID
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg && tg.initDataUnsafe?.user?.id) {
+        const id = tg.initDataUnsafe.user.id.toString();
+        setTgUserId(id);
+        const savedBalance = localStorage.getItem(`gram_balance_${id}`);
+        if (savedBalance) {
+          setUserGramBalance(parseFloat(savedBalance));
+        }
+      } else {
+        // Fallback для тегов в браузере (привязка к адресу кошелька или дефолту)
+        const fallbackId = userAddress || 'local_user';
+        setTgUserId(fallbackId);
+        const savedBalance = localStorage.getItem(`gram_balance_${fallbackId}`);
+        if (savedBalance) {
+          setUserGramBalance(parseFloat(savedBalance));
+        }
+      }
+    }
+  }, [userAddress]);
+
+  // Функция обновления и сохранения баланса GRAM-START
+  const addGramTokens = (amountToAdd: number) => {
+    setUserGramBalance((prev) => {
+      const newBalance = prev + amountToAdd;
+      localStorage.setItem(`gram_balance_${tgUserId}`, newBalance.toString());
+      return newBalance;
+    });
+  };
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
@@ -74,12 +113,13 @@ function MinterApp() {
     }
   };
 
-  // Расчет детальной стоимости создания
+  // Расчет стоимости создания
   const baseFee = 0.5;
   const poolFee = addLiquidity ? 0.5 : 0;
   const liqVal = addLiquidity ? parseFloat(liquidityAmount || '0') : 0;
   const totalDisplayCost = baseFee + poolFee + liqVal;
 
+  // Создание токена (с начислением +100 токенов GRAM-START ТОЛЬКО при успешной транзакции)
   const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userAddress) {
@@ -112,15 +152,22 @@ function MinterApp() {
         ],
       };
 
+      // Ждем реального подтверждения транзакции в кошельке
       await tonConnectUI.sendTransaction(transaction);
-      alert('Заявка на создание токена успешно отправлена!');
+      
+      // БОНУС: +100 токенов GRAM-START за успешное создание
+      addGramTokens(100);
+      alert('Заявка на создание токена успешно отправлена! Вам начислен бонус: +100 GRAM-START 🎉');
     } catch (err: any) {
-      alert('Ошибка при отправке: ' + (err.message || err));
+      // Если транзакция отменена или произошла ошибка — бонусы и балансы НЕ начисляются
+      console.error(err);
+      alert('Транзакция была отменена или отклонена. Токены не были списаны, бонусы не начислены.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Управление токеном (с начислением +100 токенов GRAM-START ТОЛЬКО при успешной транзакции)
   const handleAction = async (actionType: 'BURN' | 'MINT' | 'REVOKE') => {
     if (!userAddress) {
       alert('Подключите кошелек!');
@@ -164,23 +211,33 @@ function MinterApp() {
       };
 
       await tonConnectUI.sendTransaction(transaction);
-      alert(`Запрос успешно отправлен! Обработка займет несколько секунд.`);
+      
+      // БОНУС: +100 токенов GRAM-START за любое успешное действие
+      addGramTokens(100);
+      alert(`Запрос успешно выполнен! Вам начислен бонус: +100 GRAM-START 🎉`);
     } catch (err: any) {
-      alert('Ошибка: ' + (err.message || err));
+      console.error(err);
+      alert('Транзакция отменена. Действие не выполнено, бонусы не начислены.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Участие в прелистинге с кривой Bonding Curve
+  // Участие в прелистинге GRAM-START (1 TON = 1000 GRAM-START, 0.1 TON = 100 GRAM-START)
   const handlePresaleParticipate = async () => {
     if (!userAddress) {
       alert('Подключите кошелек для участия в прелистинге!');
       return;
     }
+    const tonVal = parseFloat(presaleAmount);
+    if (isNaN(tonVal) || tonVal <= 0) {
+      alert('Введите корректную сумму в TON');
+      return;
+    }
+
     setParticipating(true);
     try {
-      const commentText = `PRESALE_BUY | Amount:${presaleAmount} | Buyer:${userAddress}`;
+      const commentText = `PRESALE_GRAM_START | Amount:${tonVal}TON | Buyer:${userAddress}`;
       const commentCell = beginCell()
         .storeUint(0, 32)
         .storeStringTail(commentText)
@@ -191,25 +248,38 @@ function MinterApp() {
         messages: [
           {
             address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano(presaleAmount).toString(),
+            amount: toNano(tonVal.toString()).toString(),
             payload: commentCell.toBoc().toString('base64'),
           },
         ],
       };
 
+      // Ждем успешного подтверждения транзакции в блокчейне
       await tonConnectUI.sendTransaction(transaction);
-      alert('Успешно! Вы выкупили долю по кривой прелистинга.');
+
+      // Расчет купленных токенов: 1 TON = 1000 GRAM-START
+      const tokensBought = tonVal * 1000;
+      
+      // Засчитываем покупку и обновляем общую статистику сборов
+      addGramTokens(tokensBought);
+      setTotalRaised((prev) => prev + tonVal);
+
+      alert(`Успешно! Вы выкупили ${tokensBought} GRAM-START за ${tonVal} TON. Баланс обновлен! 💎`);
     } catch (err: any) {
-      alert('Ошибка: ' + (err.message || err));
+      console.error(err);
+      alert('Транзакция прелистинга была отменена. Средства не списаны, токены не зачислены.');
     } finally {
       setParticipating(false);
     }
   };
 
+  const progressPercent = Math.min(100, (totalRaised / HARD_CAP) * 100).toFixed(1);
+  const calculatedGramOutput = (parseFloat(presaleAmount || '0') * 1000).toLocaleString();
+
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-black">
       
-      {/* Шапка с фиксированной синей кнопкой в правом верхнем углу */}
+      {/* Шапка */}
       <header className="w-full max-w-md pt-2 pb-3">
         <div className="flex items-center justify-between bg-[#121824]/90 border border-white/[0.08] rounded-2xl p-3.5 shadow-2xl mb-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
@@ -227,7 +297,7 @@ function MinterApp() {
           </div>
         </div>
 
-        {/* 3 вкладки: Создание, Управление, Прелистинг (Blum-style) */}
+        {/* 3 вкладки */}
         <div className="grid grid-cols-3 gap-1.5 bg-[#121824]/90 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
           <button
             type="button"
@@ -266,7 +336,7 @@ function MinterApp() {
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
-            🚀 Прелистинг
+            🚀 GRAM-START
           </button>
         </div>
       </header>
@@ -279,8 +349,9 @@ function MinterApp() {
           {activeTab === 'create' && (
             <form onSubmit={handleMint} className="space-y-4 animate-fadeIn">
               <div className="space-y-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                  <span>📦</span> Основные параметры
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                  <span>📦 Основные параметры</span>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Бонус: +100 GRAM</span>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Название токена *</label>
@@ -416,7 +487,7 @@ function MinterApp() {
                 )}
               </div>
 
-              {/* Детальный чек расчета стоимости */}
+              {/* Чек расчета */}
               {userAddress && (
                 <div className="bg-[#0e1420] border border-white/10 rounded-2xl p-3 text-xs space-y-1.5">
                   <div className="text-[11px] font-bold text-cyan-400 uppercase tracking-wide mb-1">🧾 Детализация расчета:</div>
@@ -443,7 +514,6 @@ function MinterApp() {
                 </div>
               )}
 
-              {/* Кнопка создания токена */}
               <div className="pt-1">
                 {!userAddress ? (
                   <div className="text-center py-3 bg-slate-900/60 border border-white/[0.05] rounded-2xl">
@@ -455,7 +525,7 @@ function MinterApp() {
                     disabled={loading}
                     className="w-full py-4 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97] ring-1 ring-white/30"
                   >
-                    {loading ? 'Создание заявки...' : `Создать токен (${totalDisplayCost} TON)`}
+                    {loading ? 'Создание заявки...' : `Создать токен (${totalDisplayCost} TON) + Бонус 100 GRAM`}
                   </button>
                 )}
               </div>
@@ -474,8 +544,9 @@ function MinterApp() {
               ) : (
                 <div className="space-y-4">
                   <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] space-y-3 shadow-inner">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                      <span>⚙️</span> Панель управления токеном
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                      <span>⚙️ Панель управления токеном</span>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Бонус: +100 GRAM</span>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-300 mb-1">Адрес токена (Jetton Master Address) *</label>
@@ -527,7 +598,7 @@ function MinterApp() {
                     <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
                       <div>
                         <div className="text-xs font-bold text-slate-200">🔥 Сжечь токены</div>
-                        <div className="text-[10px] text-slate-400">Стоимость услуги: 0.5 TON</div>
+                        <div className="text-[10px] text-slate-400">Стоимость: 0.5 TON (+100 GRAM бонус)</div>
                       </div>
                       <button
                         type="button"
@@ -542,7 +613,7 @@ function MinterApp() {
                     <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
                       <div>
                         <div className="text-xs font-bold text-slate-200">🪙 Доминтить (Минт)</div>
-                        <div className="text-[10px] text-slate-400">Стоимость услуги: 0.5 TON</div>
+                        <div className="text-[10px] text-slate-400">Стоимость: 0.5 TON (+100 GRAM бонус)</div>
                       </div>
                       <button
                         type="button"
@@ -557,7 +628,7 @@ function MinterApp() {
                     <div className="bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.07] flex items-center justify-between shadow-sm">
                       <div>
                         <div className="text-xs font-bold text-slate-200">🛑 Отказ от прав</div>
-                        <div className="text-[10px] text-slate-400">Стоимость услуги: 0.5 TON</div>
+                        <div className="text-[10px] text-slate-400">Стоимость: 0.5 TON (+100 GRAM бонус)</div>
                       </div>
                       <button
                         type="button"
@@ -574,53 +645,80 @@ function MinterApp() {
             </div>
           )}
 
-          {/* ВКЛАДКА 3: ПРЕЛИСТИНГ И БОДИ КРИВАЯ (BLUM-STYLE) */}
+          {/* ВКЛАДКА 3: ПРЕЛИСТИНГ GRAM-START (С ПЕРСОНАЛЬНЫМ БАЛАНСОМ И СБОРОМ) */}
           {activeTab === 'presale' && (
             <div className="space-y-4 animate-fadeIn">
               <div className="bg-[#090d16]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                    <span>📈</span> Bonding Curve Launch
+                    <span>🚀</span> Прелистинг GRAM-START
                   </span>
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-bold animate-pulse">
-                    ● LIVE PRE-SALE
+                    ● ACTIVE
                   </span>
                 </div>
 
-                {/* Имитация графика кривой боди */}
-                <div className="h-28 bg-[#0e1420] border border-white/10 rounded-xl relative overflow-hidden flex items-end px-3 pb-2">
-                  <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent"></div>
-                  {/* Кривая линия графика */}
-                  <svg className="absolute inset-0 w-full h-full text-cyan-400 opacity-80" preserveAspectRatio="none" viewBox="0 0 100 50">
-                    <path d="M0 45 Q 35 40, 60 25 T 100 5" fill="none" stroke="currentColor" strokeWidth="2.5" />
-                  </svg>
-                  <div className="relative z-10 flex justify-between w-full text-[10px] text-slate-400 font-mono">
-                    <span>Softcap: 50 TON</span>
-                    <span className="text-cyan-400 font-bold">Progress: 72%</span>
-                    <span>Hardcap: 250 TON</span>
+                {/* Персональный баланс пользователя (привязан к Telegram ID) */}
+                <div className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-indigo-500/10 p-3.5 rounded-2xl border border-cyan-500/30 flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] text-cyan-300 font-semibold uppercase tracking-wider">Ваш баланс GRAM-START</div>
+                    <div className="text-xl font-black font-mono text-white mt-0.5">{userGramBalance.toLocaleString()} <span className="text-xs text-cyan-400 font-normal">GRAM</span></div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400">Telegram аккаунт</div>
+                    <div className="text-xs font-mono text-slate-300">ID: {tgUserId}</div>
                   </div>
                 </div>
 
-                {/* Прогресс бар */}
-                <div className="space-y-1">
-                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-0.5 border border-white/10">
-                    <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full w-[72%] shadow-md shadow-cyan-500/50"></div>
+                {/* Прогресс общего сбора (100.000 TON цел, 68.203 TON собрано) */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-slate-300">Общий сбор: <strong className="text-cyan-400 font-mono">{totalRaised.toLocaleString()} TON</strong></span>
+                    <span className="text-slate-400 font-mono">Цель: {HARD_CAP.toLocaleString()} TON ({progressPercent}%)</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>Собрано: 180 TON</span>
-                    <span>Осталось: 2 дня 4ч</span>
+                  <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
+                    <div 
+                      className="bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-500 h-full rounded-full shadow-md shadow-cyan-500/50 transition-all duration-500"
+                      style={{ width: `${progressPercent}%` }}
+                    ></div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Сумма участия в прелистинге (TON) *</label>
+                {/* Курс токена */}
+                <div className="bg-[#0e1420] p-2.5 rounded-xl border border-white/5 text-[11px] flex justify-between text-slate-300 font-mono">
+                  <span>Курс прелистинга:</span>
+                  <span className="text-cyan-400 font-bold">1 TON = 1,000 GRAM (0.1 TON = 100 GRAM)</span>
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-medium text-slate-300">Сумма покупки (TON) *</label>
+                  <div className="flex gap-2">
+                    {['0.1', '1', '10', '50'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setPresaleAmount(preset)}
+                        className={`flex-1 py-1.5 text-xs font-mono rounded-lg border transition-all ${
+                          presaleAmount === preset
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                            : 'bg-[#0e1420] border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {preset} TON
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="number"
-                    min="1"
+                    step="0.01"
+                    min="0.1"
                     value={presaleAmount}
                     onChange={(e) => setPresaleAmount(e.target.value)}
-                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm mt-2"
                   />
+                  <p className="text-[10px] text-cyan-300/80 pt-1 font-mono">
+                    💡 Вы получите: <strong className="text-white font-bold">{calculatedGramOutput} GRAM-START</strong>
+                  </p>
                 </div>
 
                 <button
@@ -629,13 +727,13 @@ function MinterApp() {
                   onClick={handlePresaleParticipate}
                   className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97]"
                 >
-                  {participating ? 'Покупка доли...' : `🚀 Купить токены по кривой (${presaleAmount} TON)`}
+                  {participating ? 'Обработка транзакции...' : `🚀 Купить GRAM-START за ${presaleAmount || 0} TON`}
                 </button>
               </div>
 
               <div className="bg-[#090d16]/70 p-3 rounded-2xl border border-white/[0.05] text-[11px] text-slate-400 space-y-1">
-                <p className="text-cyan-300 font-semibold">💡 Как работает прелистинг:</p>
-                <p>Цена токена растет автоматически по математической кривой (Bonding Curve) по мере поступления средств. После завершения сбора пул автоматически мигрирует на DEX.</p>
+                <p className="text-cyan-300 font-semibold">🔒 Безопасность и защита:</p>
+                <p>Баланс токенов привязан к вашему Telegram-аккаунту и защищен смарт-контрактами. Если транзакция отменяется или отклоняется, средства не списываются, а токены не зачисляются.</p>
               </div>
             </div>
           )}
