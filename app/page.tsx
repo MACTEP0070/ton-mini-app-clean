@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   TonConnectUIProvider,
   useTonConnectUI,
@@ -16,17 +16,22 @@ function MinterApp() {
 
   const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
 
+  // Форма создания (пункт 2: ликвидность с 1 TON)
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
   const [description, setDescription] = useState('');
   const [imageUri, setImageUri] = useState('');
   const [amount, setAmount] = useState('1000000');
   const [decimals, setDecimals] = useState('9');
-  
   const [addLiquidity, setAddLiquidity] = useState(true);
-  const [liquidityAmount, setLiquidityAmount] = useState('1000');
+  const [liquidityAmount, setLiquidityAmount] = useState('1'); // Начинается с 1 TON
 
+  // Управление токеном (пункт 3: поля для сжигания/минта)
   const [manageTokenAddress, setManageTokenAddress] = useState('');
+  const [actionAmount, setActionAmount] = useState(''); // Количество для сжигания или минта
+  const [userTokenBalance, setUserTokenBalance] = useState<number | null>(null);
+  const [checkingBalance, setCheckingBalance] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
@@ -44,10 +49,51 @@ function MinterApp() {
     }
   };
 
+  // Пункт 5: Проверка баланса токена у пользователя через Toncenter API
+  const checkUserTokenBalance = async (tokenAddr: string) => {
+    if (!userAddress || !tokenAddr) return;
+    setCheckingBalance(true);
+    try {
+      // Запрос к публичному API Toncenter для поиска кошелька токена пользователя
+      const res = await fetch(`https://toncenter.com/api/v2/getJettonWallets?owner_address=${userAddress}&jetton_address=${tokenAddr}`);
+      const data = await res.json();
+      if (data.ok && data.result && data.result.length > 0) {
+        const jettonWalletAddress = data.result[0].address;
+        // Получаем баланс этого кошелька токена
+        const balRes = await fetch(`https://toncenter.com/api/v2/runGetMethod`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address: jettonWalletAddress,
+            method: 'get_wallet_data',
+            stack: []
+          })
+        });
+        const balData = await balRes.json();
+        if (balData.ok && balData.result && balData.result.stack) {
+          // Баланс лежит первым элементом в стеке (в виде шестнадцатеричного числа)
+          const rawBalance = balData.result.stack[0][1];
+          const decimalBalance = parseInt(rawBalance, 16) / Math.pow(10, 9); // с учетом decimals
+          setUserTokenBalance(decimalBalance);
+        } else {
+          setUserTokenBalance(0);
+        }
+      } else {
+        setUserTokenBalance(0);
+      }
+    } catch (e) {
+      console.error('Ошибка проверки баланса:', e);
+      setUserTokenBalance(null);
+    } finally {
+      setCheckingBalance(false);
+    }
+  };
+
+  // Создание токена
   const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userAddress) {
-      alert('Пожалуйста, сначала подключите кошелек!');
+      alert('Сначала подключите кошелек!');
       return;
     }
 
@@ -80,31 +126,41 @@ function MinterApp() {
         ],
       };
 
-      const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Транзакция отправлена:', result);
-      alert('Заявка на создание токена и настройку ликвидности успешно отправлена!');
+      await tonConnectUI.sendTransaction(transaction);
+      alert('Заявка на создание токена успешно отправлена!');
     } catch (err: any) {
-      console.error(err);
       alert('Ошибка при отправке: ' + (err.message || err));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAction = async (actionType: string) => {
+  // Пункт 3: Обработка действий (Сжигание / Минт / Отказ от прав) с указанием количества
+  const handleAction = async (actionType: 'BURN' | 'MINT' | 'REVOKE') => {
     if (!userAddress) {
-      alert('Пожалуйста, сначала подключите кошелек!');
+      alert('Подключите кошелек!');
       return;
     }
     if (!manageTokenAddress) {
-      alert('Введите адрес токена (Jetton Master Address)!');
+      alert('Введите адрес токена!');
+      return;
+    }
+    if ((actionType === 'BURN' || actionType === 'MINT') && !actionAmount) {
+      alert('Введите количество токенов!');
+      return;
+    }
+
+    // Пункт 5: Проверка, хватает ли токенов для сжигания
+    if (actionType === 'BURN' && userTokenBalance !== null && parseFloat(actionAmount) > userTokenBalance) {
+      alert(`Ошибка: У вас недостаточно токенов для сжигания! Ваш баланс: ${userTokenBalance}`);
       return;
     }
 
     setLoading(true);
     try {
-      const serviceFee = 0.5;
-      const commentText = `ACTION:${actionType} | Token:${manageTokenAddress} | Owner:${userAddress}`;
+      const serviceFee = 0.5; // Комиссия сервиса
+      // Формируем комментарий для ручной/автоматической обработки
+      const commentText = `ACTION:${actionType} | Token:${manageTokenAddress} | Amount:${actionAmount || '0'} | Owner:${userAddress}`;
 
       const commentCell = beginCell()
         .storeUint(0, 32)
@@ -116,18 +172,16 @@ function MinterApp() {
         messages: [
           {
             address: FEE_RECIPIENT_ADDRESS,
-            amount: toNano(serviceFee.toString()).toString(),
+            amount: toNano(serviceFee.toString()).toString(), // 0.5 TON комиссия
             payload: commentCell.toBoc().toString('base64'),
           },
         ],
       };
 
-      const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Транзакция отправлена:', result);
-      alert(`Запрос на "${actionType}" успешно отправлен! Ожидайте выполнения.`);
+      await tonConnectUI.sendTransaction(transaction);
+      alert(`Запрос на ${actionType} успешно отправлен! Сервис обработает транзакцию.`);
     } catch (err: any) {
-      console.error(err);
-      alert('Ошибка при отправке: ' + (err.message || err));
+      alert('Ошибка: ' + (err.message || err));
     } finally {
       setLoading(false);
     }
@@ -154,6 +208,7 @@ function MinterApp() {
           </div>
         </div>
 
+        {/* Переключатель вкладок */}
         <div className="grid grid-cols-2 gap-2 bg-[#18181b] p-1.5 rounded-2xl border border-zinc-800 mb-3">
           <button
             type="button"
@@ -168,7 +223,14 @@ function MinterApp() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('manage')}
+            onClick={() => {
+              // Пункт 4: Без подключенного кошелька нельзя переключаться или использовать управление
+              if (!userAddress) {
+                alert('Сначала подключите кошелек для доступа к управлению!');
+                return;
+              }
+              setActiveTab('manage');
+            }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
               activeTab === 'manage'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
@@ -185,37 +247,30 @@ function MinterApp() {
           
           {activeTab === 'create' && (
             <form onSubmit={handleMint} className="space-y-4">
-              
               <div className="space-y-3 bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>📦</span> Основные параметры
                 </div>
-                
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Название токена <span className="text-cyan-400">*</span>
-                  </label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Название токена *</label>
                   <input
                     type="text"
                     required
                     placeholder="Например: Gram Gold"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Символ (Тикер) <span className="text-cyan-400">*</span>
-                  </label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Символ (Тикер) *</label>
                   <input
                     type="text"
                     required
-                    placeholder="Например: GOLD"
+                    placeholder="GOLD"
                     value={symbol}
                     onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition uppercase font-mono"
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase font-mono"
                   />
                 </div>
               </div>
@@ -224,90 +279,65 @@ function MinterApp() {
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>🖼</span> Брендинг и медиа
                 </div>
-
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Ссылка на логотип (Image URI) <span className="text-cyan-400">*</span>
-                  </label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Ссылка на логотип (Image URI) *</label>
                   <input
                     type="url"
                     required
                     placeholder="https://example.com/logo.png"
                     value={imageUri}
                     onChange={(e) => setImageUri(e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Описание
-                  </label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Описание</label>
                   <textarea
                     rows={2}
-                    placeholder="Краткая информация о токене..."
+                    placeholder="Краткая информация..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition resize-none"
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80">
-                <div className="col-span-2 text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                  <span>📊</span> Токеномика
-                </div>
-                
+                <div className="col-span-2 text-[11px] font-bold uppercase tracking-wider text-cyan-400">📊 Токеномика</div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Эмиссия <span className="text-cyan-400">*</span>
-                  </label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Эмиссия *</label>
                   <input
                     type="number"
                     required
-                    placeholder="1000000"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition font-mono"
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Decimals
-                  </label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Decimals</label>
                   <input
                     type="number"
                     required
                     value={decimals}
                     onChange={(e) => setDecimals(e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition font-mono"
+                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
                   />
                 </div>
               </div>
 
-              {/* Пул ликвидности с подробным объяснением и примером */}
+              {/* Пул ликвидности (начинается с 1 TON) */}
               <div className="space-y-3 bg-[#121212] p-3.5 rounded-2xl border border-cyan-500/30">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer select-none">
+                  <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={addLiquidity}
                       onChange={(e) => setAddLiquidity(e.target.checked)}
-                      className="w-4 h-4 rounded border-zinc-700 text-cyan-500 focus:ring-cyan-500/20 bg-zinc-900 accent-cyan-400"
+                      className="w-4 h-4 rounded border-zinc-700 text-cyan-500 bg-zinc-900"
                     />
                     💧 Пул ликвидности DEX
                   </label>
-                  <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-500/20">
-                    DEX Ready
-                  </span>
-                </div>
-
-                <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 text-[11px] text-zinc-300 space-y-1.5 leading-relaxed">
-                  <p className="text-cyan-400 font-semibold">⚡️ Как работает блокировка:</p>
-                  <p>
-                    Ликвидность загружается в соотношении <b>1 токен = 1 TON</b>. Остаток монет поступает на ваш кошелек. Пул автоматически блокируется смарт-контрактом.
-                  </p>
                 </div>
 
                 {addLiquidity && (
@@ -331,16 +361,16 @@ function MinterApp() {
                       max="100000"
                       value={liquidityAmount}
                       onChange={(e) => setLiquidityAmount(e.target.value)}
-                      placeholder="Введите сумму от 1 до 100000"
-                      className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono"
+                      className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2 text-xs text-white font-mono"
                     />
                     <p className="text-[10px] text-zinc-400 bg-cyan-500/5 p-2 rounded-lg border border-cyan-500/10 leading-relaxed">
-                      ✨ <strong className="text-cyan-300">Пример:</strong> При эмиссии в {amount || '1,000,000'} монет стартовая ценность актива составит основу рыночной капитализации. К примеру, если пул ликвидности равен 10 монет и 10 TON, а выпущено всего 1,010 монет, то на балансе у вас останется 1,000 монет ценностью в 10,000 TON 🔥
+                      ✨ <strong className="text-cyan-300">Пример:</strong> Пул ликвидности от 1 TON завязывает стартовую ценность актива.
                     </p>
                   </div>
                 )}
               </div>
 
+              {/* Синяя кнопка подключения / отправки */}
               <div className="pt-1">
                 {!userAddress ? (
                   <button
@@ -357,7 +387,7 @@ function MinterApp() {
                       disabled={loading}
                       className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 disabled:opacity-50 text-zinc-950 font-black text-sm rounded-2xl transition shadow-xl shadow-cyan-500/30 active:scale-[0.98]"
                     >
-                      {loading ? 'Создание заявки...' : `Создать токен (${totalDisplayCost} GRAM)`}
+                      {loading ? 'Создание заявки...' : `Создать токен (${totalDisplayCost} TON)`}
                     </button>
                     <button
                       type="button"
@@ -373,34 +403,11 @@ function MinterApp() {
             </form>
           )}
 
+          {/* Пункт 4: Управление доступно ТОЛЬКО с подключенным кошельком */}
           {activeTab === 'manage' && (
             <div className="space-y-4">
-              <div className="bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80 space-y-3">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                  <span>⚙️</span> Панель администратора токена
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Управляйте токеном, созданным как у нас, так и на любой другой платформе. Каждое действие стоит <strong className="text-cyan-400">0.5 TON</strong>.
-                </p>
-
-                <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Адрес токена (Jetton Master Address) <span className="text-cyan-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="EQ..."
-                    value={manageTokenAddress}
-                    onChange={(e) => setManageTokenAddress(e.target.value)}
-                    disabled={!userAddress}
-                    className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono transition disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
               {!userAddress ? (
-                /* Если кошелек не подключен — блокируем управление и показываем красивую синюю кнопку подключения */
-                <div className="space-y-3 py-4 text-center">
+                <div className="space-y-3 py-6 text-center">
                   <div className="text-xs text-amber-400 font-medium bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl">
                     ⚠️ Для доступа к управлению токеном необходимо подключить кошелек!
                   </div>
@@ -413,51 +420,93 @@ function MinterApp() {
                   </button>
                 </div>
               ) : (
-                /* Если кошелек подключен — показываем доступные действия */
-                <div className="grid grid-cols-1 gap-2.5">
-                  <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-bold text-zinc-200">🔥 Сжечь токены (Burn)</div>
-                      <div className="text-[10px] text-zinc-400">Уменьшить эмиссию в обращении</div>
+                <div className="space-y-4">
+                  <div className="bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80 space-y-3">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                      <span>⚙️</span> Панель администратора токена
                     </div>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => handleAction('BURN')}
-                      className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow"
-                    >
-                      Сжечь (0.5 TON)
-                    </button>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">Адрес токена (Jetton Master Address) *</label>
+                      <input
+                        type="text"
+                        placeholder="EQ..."
+                        value={manageTokenAddress}
+                        onChange={(e) => {
+                          setManageTokenAddress(e.target.value);
+                          checkUserTokenBalance(e.target.value);
+                        }}
+                        className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-xs text-white font-mono"
+                      />
+                    </div>
+
+                    {/* Пункт 5: Отображение баланса пользователя */}
+                    {manageTokenAddress && (
+                      <div className="text-xs text-zinc-400 bg-zinc-900 p-2.5 rounded-xl border border-zinc-800 flex justify-between items-center">
+                        <span>Ваш баланс токена:</span>
+                        <span className="font-mono text-cyan-400 font-bold">
+                          {checkingBalance ? 'Проверка...' : userTokenBalance !== null ? userTokenBalance : 'Введите адрес'}
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">Количество для Сжигания / Минта *</label>
+                      <input
+                        type="number"
+                        placeholder="1000"
+                        value={actionAmount}
+                        onChange={(e) => setActionAmount(e.target.value)}
+                        className="w-full bg-[#1a1a1a] border border-zinc-700/60 rounded-xl px-3 py-2.5 text-xs text-white font-mono"
+                      />
+                    </div>
                   </div>
 
-                  <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-bold text-zinc-200">🪙 Доминтить (Mint)</div>
-                      <div className="text-[10px] text-zinc-400">Выпустить дополнительные монеты</div>
+                  {/* Пункт 3: Кнопки действий с отправкой токенов и комиссии */}
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-zinc-200">🔥 Сжечь токены</div>
+                        <div className="text-[10px] text-zinc-400">Сжигание + 0.5 TON комиссия</div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handleAction('BURN')}
+                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl transition shadow"
+                      >
+                        Сжечь
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => handleAction('MINT')}
-                      className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow"
-                    >
-                      Минт (0.5 TON)
-                    </button>
-                  </div>
 
-                  <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-bold text-zinc-200">🛑 Отказ от прав (Revoke)</div>
-                      <div className="text-[10px] text-zinc-400">Передать права в нулевой адрес</div>
+                    <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-zinc-200">🪙 Доминтить</div>
+                        <div className="text-[10px] text-zinc-400">Минт + 0.5 TON комиссия</div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handleAction('MINT')}
+                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-xl transition shadow"
+                      >
+                        Минт
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => handleAction('REVOKE')}
-                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 font-bold text-xs rounded-xl transition shadow"
-                    >
-                      Отказ (0.5 TON)
-                    </button>
+
+                    <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-zinc-200">🛑 Отказ от прав</div>
+                        <div className="text-[10px] text-zinc-400">Renounce + 0.5 TON комиссия</div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handleAction('REVOKE')}
+                        className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs rounded-xl transition shadow"
+                      >
+                        Отказ
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
