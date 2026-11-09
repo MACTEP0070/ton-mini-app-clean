@@ -432,4 +432,61 @@ function MinterApp() {
                   >
                     Минт (0.5 TON)
                   </button>
-                
+                </div>
+
+                <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-zinc-200">🛑 Отказ от прав (Revoke)</div>
+                    <div className="text-[10px] text-zinc-400">Передать права в нулевой адрес</div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={loading || !userAddress}
+                    onClick={() => handleAction('REVOKE')}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 font-bold text-xs rounded-xl transition shadow"
+                  >
+                    Отказ (0.5 TON)
+                  </button>
+                </div>
+              </div>
+
+              {!userAddress && (
+                <button
+                  type="button"
+                  onClick={handleConnectWallet}
+                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm rounded-2xl transition shadow-lg shadow-cyan-500/25 active:scale-[0.98]"
+                >
+                  Подключить кошелек
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Информационный футер */}
+          <div className="bg-[#121212] rounded-2xl p-3 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+            <p className="flex justify-between">
+              <span>Статус сети:</span> <span className="text-emerald-400 font-medium">TON Mainnet Online</span>
+            </p>
+            <p className="flex justify-between text-cyan-400/90 font-medium">
+              <span>Режим работы:</span> <span>Заявки с ручной обработкой</span>
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <footer className="w-full max-w-md text-center pt-2 pb-1 text-[10px] text-zinc-500">
+        TON Market Launchpad • Secure Smart Contracts
+      </footer>
+    </div>
+  );
+}
+
+export default function Home() {
+  const manifestUrl = 'https://ton-mini-app-clean.vercel.app/tonconnect-manifest.json';
+
+  return (
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
+      <MinterApp />
+    </TonConnectUIProvider>
+  );
+}
