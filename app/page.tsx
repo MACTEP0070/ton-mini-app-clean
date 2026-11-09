@@ -14,10 +14,8 @@ function MinterApp() {
   const userAddress = useTonAddress();
   const wallet = useTonWallet();
 
-  // Переключение вкладок: 'create' или 'manage'
   const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
 
-  // Состояния формы создания
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
   const [description, setDescription] = useState('');
@@ -27,12 +25,9 @@ function MinterApp() {
   const [addLiquidity, setAddLiquidity] = useState(true);
   const [liquidityAmount, setLiquidityAmount] = useState('1000');
 
-  // Состояния для управления сторонним/существующим токеном
   const [manageTokenAddress, setManageTokenAddress] = useState('');
-
   const [loading, setLoading] = useState(false);
 
-  // Ваш мастер-кошелек
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
   const formatAddress = (addr: string) => {
@@ -48,7 +43,6 @@ function MinterApp() {
     }
   };
 
-  // Обработка создания токена
   const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userAddress) {
@@ -96,7 +90,6 @@ function MinterApp() {
     }
   };
 
-  // Обработка запросов на управление (Сжигание, Минт, Отказ от прав)
   const handleAction = async (actionType: string) => {
     if (!userAddress) {
       alert('Пожалуйста, сначала подключите кошелек!');
@@ -109,7 +102,7 @@ function MinterApp() {
 
     setLoading(true);
     try {
-      const serviceFee = 0.5; // Фиксированная стоимость действия в TON/GRAM
+      const serviceFee = 0.5;
       const commentText = `ACTION:${actionType} | Token:${manageTokenAddress} | Owner:${userAddress}`;
 
       const commentCell = beginCell()
@@ -139,12 +132,12 @@ function MinterApp() {
     }
   };
 
+  // Расчет стоимости вынесен строго внутрь функции компонента перед return
   const totalDisplayCost = 0.5 + (addLiquidity ? parseFloat(liquidityAmount || '0') : 0);
 
   return (
     <div className="min-h-screen bg-[#121212] text-zinc-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-white">
       
-      {/* Шапка в стиле Маркета */}
       <header className="w-full max-w-md pt-2 pb-3">
         <div className="flex items-center justify-between bg-[#1a1a1a] border border-zinc-800/80 rounded-2xl p-3 shadow-md mb-4">
           <div className="flex items-center gap-2.5">
@@ -161,7 +154,6 @@ function MinterApp() {
           </div>
         </div>
 
-        {/* Переключатель вкладок (Создание / Управление) */}
         <div className="grid grid-cols-2 gap-2 bg-[#18181b] p-1.5 rounded-2xl border border-zinc-800 mb-3">
           <button
             type="button"
@@ -188,15 +180,12 @@ function MinterApp() {
         </div>
       </header>
 
-      {/* Основная форма карточки */}
       <main className="w-full max-w-md my-1 flex-1">
         <div className="bg-[#18181b] border border-zinc-800 rounded-3xl p-4 shadow-2xl space-y-4">
           
-          {/* ВКЛАДКА 1: СОЗДАНИЕ ТОКЕНА */}
           {activeTab === 'create' && (
             <form onSubmit={handleMint} className="space-y-4">
               
-              {/* Основные параметры */}
               <div className="space-y-3 bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>📦</span> Основные параметры
@@ -231,7 +220,6 @@ function MinterApp() {
                 </div>
               </div>
 
-              {/* Медиа и Описание */}
               <div className="space-y-3 bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>🖼</span> Брендинг и медиа
@@ -265,7 +253,6 @@ function MinterApp() {
                 </div>
               </div>
 
-              {/* Токеномика */}
               <div className="grid grid-cols-2 gap-3 bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80">
                 <div className="col-span-2 text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                   <span>📊</span> Токеномика
@@ -299,7 +286,6 @@ function MinterApp() {
                 </div>
               </div>
 
-              {/* Пул ликвидности */}
               <div className="space-y-3 bg-[#121212] p-3.5 rounded-2xl border border-cyan-500/30">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2 cursor-pointer select-none">
@@ -344,7 +330,6 @@ function MinterApp() {
                 )}
               </div>
 
-              {/* Кнопка отправки создания или подключения кошелька */}
               <div className="pt-1">
                 {!userAddress ? (
                   <button
@@ -377,7 +362,6 @@ function MinterApp() {
             </form>
           )}
 
-          {/* ВКЛАДКА 2: УПРАВЛЕНИЕ ТОКЕНОМ (МЕНЕДЖЕР) */}
           {activeTab === 'manage' && (
             <div className="space-y-4">
               <div className="bg-[#121212] p-3.5 rounded-2xl border border-zinc-800/80 space-y-3">
@@ -402,7 +386,6 @@ function MinterApp() {
                 </div>
               </div>
 
-              {/* Кнопки действий */}
               <div className="grid grid-cols-1 gap-2.5">
                 <div className="bg-[#121212] p-3 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
                   <div>
@@ -462,7 +445,6 @@ function MinterApp() {
             </div>
           )}
 
-          {/* Информационный футер */}
           <div className="bg-[#121212] rounded-2xl p-3 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
             <p className="flex justify-between">
               <span>Статус сети:</span> <span className="text-emerald-400 font-medium">TON Mainnet Online</span>
