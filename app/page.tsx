@@ -15,7 +15,8 @@ function MinterApp() {
   const userAddress = useTonAddress();
   const wallet = useTonWallet();
 
-  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
+  // Добавляем третью вкладку 'presale' (прелистинг / боди кривая в стиле Blum)
+  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale'>('create');
 
   // Создание токена
   const [name, setName] = useState('');
@@ -34,6 +35,10 @@ function MinterApp() {
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Состояние для прелистинга (Blum-style интерактив)
+  const [presaleAmount, setPresaleAmount] = useState('5');
+  const [participating, setParticipating] = useState(false);
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
@@ -69,7 +74,7 @@ function MinterApp() {
     }
   };
 
-  // Расчет детальной стоимости
+  // Расчет детальной стоимости создания
   const baseFee = 0.5;
   const poolFee = addLiquidity ? 0.5 : 0;
   const liqVal = addLiquidity ? parseFloat(liquidityAmount || '0') : 0;
@@ -167,10 +172,44 @@ function MinterApp() {
     }
   };
 
+  // Участие в прелистинге с кривой Bonding Curve
+  const handlePresaleParticipate = async () => {
+    if (!userAddress) {
+      alert('Подключите кошелек для участия в прелистинге!');
+      return;
+    }
+    setParticipating(true);
+    try {
+      const commentText = `PRESALE_BUY | Amount:${presaleAmount} | Buyer:${userAddress}`;
+      const commentCell = beginCell()
+        .storeUint(0, 32)
+        .storeStringTail(commentText)
+        .endCell();
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: FEE_RECIPIENT_ADDRESS,
+            amount: toNano(presaleAmount).toString(),
+            payload: commentCell.toBoc().toString('base64'),
+          },
+        ],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+      alert('Успешно! Вы выкупили долю по кривой прелистинга.');
+    } catch (err: any) {
+      alert('Ошибка: ' + (err.message || err));
+    } finally {
+      setParticipating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col items-center justify-between font-sans px-4 py-5 selection:bg-cyan-500 selection:text-black">
       
-      {/* Шапка с фиксированной кнопкой в правом верхнем углу */}
+      {/* Шапка с фиксированной синей кнопкой в правом верхнем углу */}
       <header className="w-full max-w-md pt-2 pb-3">
         <div className="flex items-center justify-between bg-[#121824]/90 border border-white/[0.08] rounded-2xl p-3.5 shadow-2xl mb-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
@@ -183,24 +222,23 @@ function MinterApp() {
             </div>
           </div>
 
-          {/* Фирменная кнопка строго в правом верхнем углу (управляет подключением и сменой кошелька) */}
           <div className="flex items-center justify-end shrink-0">
             <TonConnectButton />
           </div>
         </div>
 
-        {/* Переключатель вкладок */}
-        <div className="grid grid-cols-2 gap-2 bg-[#121824]/90 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
+        {/* 3 вкладки: Создание, Управление, Прелистинг (Blum-style) */}
+        <div className="grid grid-cols-3 gap-1.5 bg-[#121824]/90 p-1.5 rounded-2xl border border-white/[0.08] mb-3 backdrop-blur-xl shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('create')}
-            className={`py-2.5 text-xs font-bold rounded-xl transition-all duration-300 relative overflow-hidden ${
+            className={`py-2 text-[11px] font-bold rounded-xl transition-all duration-300 ${
               activeTab === 'create'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
-            ✨ Создать токен
+            ✨ Создать
           </button>
           <button
             type="button"
@@ -211,13 +249,24 @@ function MinterApp() {
               }
               setActiveTab('manage');
             }}
-            className={`py-2.5 text-xs font-bold rounded-xl transition-all duration-300 relative overflow-hidden ${
+            className={`py-2 text-[11px] font-bold rounded-xl transition-all duration-300 ${
               activeTab === 'manage'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
-            🛠 Управление
+            🛠 Управлять
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('presale')}
+            className={`py-2 text-[11px] font-bold rounded-xl transition-all duration-300 ${
+              activeTab === 'presale'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-1 ring-white/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            🚀 Прелистинг
           </button>
         </div>
       </header>
@@ -226,6 +275,7 @@ function MinterApp() {
       <main className="w-full max-w-md my-1 flex-1">
         <div className="bg-[#121824]/95 border border-white/[0.08] rounded-3xl p-4.5 shadow-2xl space-y-4 backdrop-blur-2xl">
           
+          {/* ВКЛАДКА 1: СОЗДАНИЕ */}
           {activeTab === 'create' && (
             <form onSubmit={handleMint} className="space-y-4 animate-fadeIn">
               <div className="space-y-3 bg-[#090d16]/70 p-3.5 rounded-2xl border border-white/[0.05] shadow-inner">
@@ -377,7 +427,7 @@ function MinterApp() {
                   {addLiquidity && (
                     <>
                       <div className="flex justify-between text-slate-400">
-                        <span>Деплой пула DEX:</span>
+                        <span>Деплой пула DEX (+0.5):</span>
                         <span className="font-mono text-slate-200">0.5 TON</span>
                       </div>
                       <div className="flex justify-between text-slate-400">
@@ -396,7 +446,7 @@ function MinterApp() {
               {/* Кнопка создания токена */}
               <div className="pt-1">
                 {!userAddress ? (
-                  <div className="text-center py-3 bg-slate-900/60 border border-white/[0.05] rounded-2xl space-y-2">
+                  <div className="text-center py-3 bg-slate-900/60 border border-white/[0.05] rounded-2xl">
                     <p className="text-xs text-slate-400">Для создания токена подключите кошелек вверху справа ↗</p>
                   </div>
                 ) : (
@@ -412,6 +462,7 @@ function MinterApp() {
             </form>
           )}
 
+          {/* ВКЛАДКА 2: УПРАВЛЕНИЕ */}
           {activeTab === 'manage' && (
             <div className="space-y-4 animate-fadeIn">
               {!userAddress ? (
@@ -520,6 +571,72 @@ function MinterApp() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ВКЛАДКА 3: ПРЕЛИСТИНГ И БОДИ КРИВАЯ (BLUM-STYLE) */}
+          {activeTab === 'presale' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-[#090d16]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                    <span>📈</span> Bonding Curve Launch
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-bold animate-pulse">
+                    ● LIVE PRE-SALE
+                  </span>
+                </div>
+
+                {/* Имитация графика кривой боди */}
+                <div className="h-28 bg-[#0e1420] border border-white/10 rounded-xl relative overflow-hidden flex items-end px-3 pb-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent"></div>
+                  {/* Кривая линия графика */}
+                  <svg className="absolute inset-0 w-full h-full text-cyan-400 opacity-80" preserveAspectRatio="none" viewBox="0 0 100 50">
+                    <path d="M0 45 Q 35 40, 60 25 T 100 5" fill="none" stroke="currentColor" strokeWidth="2.5" />
+                  </svg>
+                  <div className="relative z-10 flex justify-between w-full text-[10px] text-slate-400 font-mono">
+                    <span>Softcap: 50 TON</span>
+                    <span className="text-cyan-400 font-bold">Progress: 72%</span>
+                    <span>Hardcap: 250 TON</span>
+                  </div>
+                </div>
+
+                {/* Прогресс бар */}
+                <div className="space-y-1">
+                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-0.5 border border-white/10">
+                    <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full w-[72%] shadow-md shadow-cyan-500/50"></div>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400">
+                    <span>Собрано: 180 TON</span>
+                    <span>Осталось: 2 дня 4ч</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Сумма участия в прелистинге (TON) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={presaleAmount}
+                    onChange={(e) => setPresaleAmount(e.target.value)}
+                    className="w-full bg-[#0e1420] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 shadow-sm"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  disabled={participating || !userAddress}
+                  onClick={handlePresaleParticipate}
+                  className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl transition-all shadow-xl shadow-cyan-500/35 active:scale-[0.97]"
+                >
+                  {participating ? 'Покупка доли...' : `🚀 Купить токены по кривой (${presaleAmount} TON)`}
+                </button>
+              </div>
+
+              <div className="bg-[#090d16]/70 p-3 rounded-2xl border border-white/[0.05] text-[11px] text-slate-400 space-y-1">
+                <p className="text-cyan-300 font-semibold">💡 Как работает прелистинг:</p>
+                <p>Цена токена растет автоматически по математической кривой (Bonding Curve) по мере поступления средств. После завершения сбора пул автоматически мигрирует на DEX.</p>
+              </div>
             </div>
           )}
 
