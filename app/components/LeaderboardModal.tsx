@@ -1,10 +1,18 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface LeaderboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   userScore: number;
   userName: string;
+  userId: string;
+}
+
+interface Player {
+  name: string;
+  score: number;
 }
 
 export default function LeaderboardModal({
@@ -12,23 +20,45 @@ export default function LeaderboardModal({
   onClose,
   userScore,
   userName,
+  userId,
 }: LeaderboardModalProps) {
+  const [players, setPlayers] = useState<Player[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Сохраняем текущего игрока в общий список локальных игроков
+    const allPlayersMap: Record<string, number> = {};
+    
+    // Загружаем существующих из localStorage или создаем базовых
+    const savedLeaderboard = localStorage.getItem('gram_global_leaderboard');
+    if (savedLeaderboard) {
+      try {
+        const parsed = JSON.parse(savedLeaderboard);
+        Object.assign(allPlayersMap, parsed);
+      } catch (e) {}
+    }
+
+    // Добавляем/обновляем текущего пользователя
+    allPlayersMap[userName || `User_${userId}`] = userScore;
+
+    // Также добавим ботов для атмосферы
+    allPlayersMap['Satoshi_TON'] = Math.max(allPlayersMap['Satoshi_TON'] || 0, 1250000);
+    allPlayersMap['Durov_Fan'] = Math.max(allPlayersMap['Durov_Fan'] || 0, 980000);
+    allPlayersMap['CryptoKing'] = Math.max(allPlayersMap['CryptoKing'] || 0, 750000);
+
+    localStorage.setItem('gram_global_leaderboard', JSON.stringify(allPlayersMap));
+
+    // Превращаем в массив и сортируем по убыванию очков
+    const sortedList: Player[] = Object.entries(allPlayersMap).map(([name, score]) => ({
+      name,
+      score,
+    })).sort((a, b) => b.score - a.score);
+
+    setPlayers(sortedList);
+  }, [isOpen, userScore, userName, userId]);
+
   if (!isOpen) return null;
-
-  // Базовые топ-игроки для атмосферы соревнования
-  const topPlayers = [
-    { rank: 1, name: 'Satoshi_TON', score: 1250000 },
-    { rank: 2, name: 'Durov_Fan', score: 980000 },
-    { rank: 3, name: 'CryptoKing', score: 750000 },
-    { rank: 4, name: 'TonWhale', score: 520000 },
-    { rank: 5, name: 'BlockchainDev', score: 410000 },
-  ];
-
-  // Добавляем текущего игрока в общий список и сортируем
-  const allPlayers = [
-    ...topPlayers,
-    { rank: 99, name: `${userName} (Вы)`, score: userScore }
-  ].sort((a, b) => b.score - a.score);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
@@ -44,12 +74,12 @@ export default function LeaderboardModal({
         </div>
 
         <p className="text-[11px] text-slate-300">
-          Самые активные кликеры экосистемы GRAM. Зарабатывайте монеты и поднимайтесь на вершину!
+          Глобальный рейтинг игроков экосистемы GRAM.
         </p>
 
         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {allPlayers.map((player, index) => {
-            const isMe = player.name.includes('(Вы)');
+          {players.map((player, index) => {
+            const isMe = player.name === userName || player.name.includes(userId);
             return (
               <div
                 key={index}
@@ -65,7 +95,7 @@ export default function LeaderboardModal({
                   }`}>
                     {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
                   </span>
-                  <span className="truncate max-w-[130px]">{player.name}</span>
+                  <span className="truncate max-w-[130px]">{player.name} {isMe ? '(Вы)' : ''}</span>
                 </div>
                 <span className="text-cyan-400 font-bold">{player.score.toLocaleString()} GRAM</span>
               </div>
