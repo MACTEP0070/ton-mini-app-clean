@@ -15,6 +15,7 @@ import ManageTab from './components/ManageTab';
 import InvestTab from './components/InvestTab';
 import StakingTab from './components/StakingTab';
 import GameTab from './components/GameTab';
+import ArenaTab from './components/ArenaTab';
 import DailyRewardsModal from './components/DailyRewardsModal';
 import LeaderboardModal from './components/LeaderboardModal';
 import TonShopModal from './components/TonShopModal';
@@ -31,7 +32,7 @@ function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
-  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('game');
+  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game' | 'arena'>('game');
   const [isDailyOpen, setIsDailyOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -85,7 +86,6 @@ function MinterApp() {
 
   const [userGramBalance, setUserGramBalance] = useState<number>(0);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [referrerId, setReferrerId] = useState<string | null>(null);
 
   // Стейкинг
   const [stakeInputAmount, setStakeInputAmount] = useState('100');
@@ -103,6 +103,13 @@ function MinterApp() {
   const [energyLimitLevel, setEnergyLimitLevel] = useState<number>(1);
   const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number }[]>([]);
   const [isTapped, setIsTapped] = useState<boolean>(false);
+
+  // Арена (PvP / Ставки TON)
+  const [userTonBalance, setUserTonBalance] = useState<number>(12.5); // Баланс арены в TON
+  const [activeBattles, setActiveBattles] = useState([
+    { id: '1', title: 'Эксклюзивный NFT-подарок Snoop Dog', prize: 'Telegram Gift #77', totalPot: 15.0, timeLeft: '04:12', myChance: 25 },
+    { id: '2', title: 'Быстрый банк TON', prize: '10 TON', totalPot: 8.5, timeLeft: '01:45', myChance: 40 },
+  ]);
 
   const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
 
@@ -203,7 +210,55 @@ function MinterApp() {
     showToast(`Собрано с шахты: +${earned} GRAM! ⛏️`, 'success');
   };
 
-  // Покупка за TON
+  // Пополнение баланса Арены / Покупка за TON
+  const handleTopUpTon = async (tonAmount: number) => {
+    if (!userAddress) {
+      showToast('Подключите кошелек TON!', 'error');
+      return;
+    }
+
+    try {
+      const commentText = `ARENA_TOPUP | User:${tgUser.id}`;
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: FEE_RECIPIENT_ADDRESS,
+          amount: toNano(tonAmount.toString()).toString(),
+          payload: commentCell.toBoc().toString('base64'),
+        }],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+      setUserTonBalance((prev) => prev + tonAmount);
+      showToast(`Баланс успешно пополнен на +${tonAmount} TON! 💎`, 'success');
+    } catch (err) {
+      showToast('Транзакция отменена.', 'error');
+    }
+  };
+
+  // Участие в Арене
+  const handleJoinBattle = (battleId: string, betAmount: number) => {
+    if (userTonBalance < betAmount) {
+      showToast('Недостаточно TON на балансе арены!', 'error');
+      return;
+    }
+
+    setUserTonBalance((prev) => prev - betAmount);
+    setActiveBattles((prev) =>
+      prev.map((b) => {
+        if (b.id === battleId) {
+          const newPot = b.totalPot + betAmount;
+          const newChance = Math.min(95, b.myChance + Math.round(betAmount * 3));
+          return { ...b, totalPot: newPot, myChance: newChance };
+        }
+        return b;
+      })
+    );
+    showToast(`Ставка в ${betAmount} TON принята! Шанс победы вырос 🔥`, 'success');
+  };
+
   const handleBuyItemWithTon = async (tonAmount: number, rewardType: 'energy' | 'boost') => {
     if (!userAddress) {
       showToast('Подключите кошелек для покупки!', 'error');
@@ -277,8 +332,8 @@ function MinterApp() {
   };
 
   const handleTabChange = (tab: typeof activeTab) => {
-    if (tab === 'manage' && !userAddress) {
-      showToast('Сначала подключите кошелек!', 'error');
+    if ((tab === 'manage' || tab === 'arena') && !userAddress) {
+      showToast('Сначала подключите кошелек TON!', 'error');
       return;
     }
     setActiveTab(tab);
@@ -496,14 +551,14 @@ function MinterApp() {
   const calculatedGramOutput = (parseFloat(presaleAmount || '0') * 1000).toLocaleString();
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-between font-sans px-3 py-3 select-none overflow-x-hidden">
+    <div className="min-h-screen bg-[#05070c] text-slate-100 flex flex-col items-center justify-between font-sans px-3 py-3 select-none overflow-x-hidden">
       
       <ToastContainer toasts={toasts} />
 
       <Header tgUser={tgUser} activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="w-full max-w-md my-1 flex-1 pb-4">
-        <div className="bg-[#111726]/95 border border-white/[0.08] rounded-3xl p-4 shadow-2xl space-y-3.5 backdrop-blur-2xl">
+        <div className="bg-[#0d121f]/95 border border-white/[0.08] rounded-[2.5rem] p-4 shadow-2xl space-y-3.5 backdrop-blur-2xl">
           
           {activeTab === 'create' && (
             <CreateTab
@@ -590,6 +645,15 @@ function MinterApp() {
             />
           )}
 
+          {activeTab === 'arena' && (
+            <ArenaTab
+              userTonBalance={userTonBalance}
+              onTopUpTon={handleTopUpTon}
+              activeBattles={activeBattles}
+              onJoinBattle={handleJoinBattle}
+            />
+          )}
+
         </div>
       </main>
 
@@ -618,7 +682,7 @@ function MinterApp() {
       />
 
       <footer className="w-full max-w-md text-center pb-1 text-[9px] text-slate-500">
-        TON Market Launchpad • Secure Smart Contracts
+        TON Snoop Arena • Secure Smart Contracts
       </footer>
     </div>
   );
