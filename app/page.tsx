@@ -75,7 +75,7 @@ function MinterApp() {
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Инвестиции
+  // Инвестиции (обычный GRAM)
   const [presaleAmount, setPresaleAmount] = useState('1');
   const [participating, setParticipating] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -85,14 +85,14 @@ function MinterApp() {
 
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  // Стейкинг
+  // Стейкинг (обычный GRAM)
   const [stakeInputAmount, setStakeInputAmount] = useState('100');
   const [stakedGramBalance, setStakedGramBalance] = useState<number>(0);
   const [stakingStartTime, setStakingStartTime] = useState<number | null>(null);
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Единый баланс GRAM для кликера и вывода
+  // Игровой баланс (GRAM-TOKEH-START) для кликера и вывода
   const [gameScore, setGameScore] = useState<number>(0);
   const [farmBalance, setFarmBalance] = useState<number>(0);
   const [autofarmExpiresAt, setAutofarmExpiresAt] = useState<number | null>(null);
@@ -111,13 +111,13 @@ function MinterApp() {
     const gameEngine = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
       
-      // Авто-майнер пополняет единый баланс
+      // Авто-майнер пополняет баланс GRAM-TOKEH-START
       const autoIncome = autoMinerLevel * 1.5;
       if (autoIncome > 0) {
         setGameScore((prev) => {
           const updated = prev + autoIncome;
           if (tgUser.id) {
-            localStorage.setItem(`game_score_${tgUser.id}`, updated.toString());
+            localStorage.setItem(`game_score_start_${tgUser.id}`, updated.toString());
           }
           return updated;
         });
@@ -128,7 +128,7 @@ function MinterApp() {
         setFarmBalance((prev) => {
           const updated = prev + 0.5;
           if (tgUser.id) {
-            localStorage.setItem(`farm_balance_${tgUser.id}`, updated.toString());
+            localStorage.setItem(`farm_balance_start_${tgUser.id}`, updated.toString());
           }
           return updated;
         });
@@ -156,10 +156,10 @@ function MinterApp() {
         setTgUser({ id: currentId, name: 'Web User' });
       }
 
-      const savedGameScore = localStorage.getItem(`game_score_${currentId}`);
+      const savedGameScore = localStorage.getItem(`game_score_start_${currentId}`);
       if (savedGameScore) setGameScore(parseFloat(savedGameScore));
 
-      const savedFarm = localStorage.getItem(`farm_balance_${currentId}`);
+      const savedFarm = localStorage.getItem(`farm_balance_start_${currentId}`);
       if (savedFarm) setFarmBalance(parseFloat(savedFarm));
 
       const savedAutofarmExp = localStorage.getItem(`autofarm_exp_${currentId}`);
@@ -200,7 +200,7 @@ function MinterApp() {
   const addGramTokens = (amountToAdd: number) => {
     setGameScore((prev) => {
       const newBalance = prev + amountToAdd;
-      localStorage.setItem(`game_score_${tgUser.id}`, newBalance.toString());
+      localStorage.setItem(`game_score_start_${tgUser.id}`, newBalance.toString());
       return newBalance;
     });
   };
@@ -210,8 +210,8 @@ function MinterApp() {
     const earned = Math.floor(farmBalance);
     addGramTokens(earned);
     setFarmBalance(0);
-    localStorage.setItem(`farm_balance_${tgUser.id}`, '0');
-    showToast(`Собрано с автофарма: +${earned} GRAM! ⛏️`, 'success');
+    localStorage.setItem(`farm_balance_start_${tgUser.id}`, '0');
+    showToast(`Собрано с автофарма: +${earned} GRAM-TOKEH-START! ⛏️`, 'success');
   };
 
   // Покупка Автофарма на 30 дней за 10 TON
@@ -315,7 +315,7 @@ function MinterApp() {
         showToast(`Успешно! Энергия полностью восстановлена ⚡`, 'success');
       } else if (rewardType === 'boost') {
         addGramTokens(5000);
-        showToast(`Успешно! +5,000 GRAM зачислено 🚀`, 'success');
+        showToast(`Успешно! +5,000 GRAM-TOKEH-START зачислено 🚀`, 'success');
       }
       setIsShopOpen(false);
     } catch (err) {
@@ -359,7 +359,7 @@ function MinterApp() {
         localStorage.removeItem(`stake_start_TIME_${tgUser.id}`);
       }
 
-      showToast(isDeposit ? 'Успешно в стейкинге!' : 'Запрос на снятие отправлен!', 'success');
+      showToast(isDeposit ? 'Успешно в стейкинге (GRAM)!' : 'Запрос на снятие отправлен!', 'success');
     } catch (err) {
       showToast('Отменено.', 'error');
     } finally {
@@ -413,7 +413,7 @@ function MinterApp() {
         setIsSubscribed(true);
         localStorage.setItem(`subscribed_${tgUser.id}`, 'true');
         addGramTokens(100);
-        showToast('Спасибо за подписку! +100 GRAM 🎉', 'success');
+        showToast('Спасибо за подписку! +100 GRAM-TOKEH-START 🎉', 'success');
       } else {
         showToast('Бонус уже получен!', 'info');
       }
@@ -461,7 +461,7 @@ function MinterApp() {
 
       await tonConnectUI.sendTransaction(transaction);
       addGramTokens(100);
-      showToast('Заявка отправлена! +100 GRAM 🎉', 'success');
+      showToast('Заявка отправлена! +100 GRAM-TOKEH-START 🎉', 'success');
     } catch (err: any) {
       showToast('Транзакция отменена.', 'error');
     } finally {
@@ -484,7 +484,7 @@ function MinterApp() {
 
       await tonConnectUI.sendTransaction(transaction);
       addGramTokens(100);
-      showToast('Успешно выполнено! +100 GRAM', 'success');
+      showToast('Успешно выполнено! +100 GRAM-TOKEH-START', 'success');
     } catch (err) {
       showToast('Отменено.', 'error');
     } finally {
@@ -499,7 +499,7 @@ function MinterApp() {
 
     setParticipating(true);
     try {
-      const commentText = `INVEST_GRAM_START | Amount:${tonVal}TON | Investor:${userAddress}`;
+      const commentText = `INVEST_GRAM | Amount:${tonVal}TON | Investor:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
@@ -508,9 +508,7 @@ function MinterApp() {
 
       await tonConnectUI.sendTransaction(transaction);
       const tokensBought = tonVal * 1000;
-      addGramTokens(tokensBought);
-      setTotalRaised((prev) => prev + tonVal);
-      showToast(`Инвестиция успешна! +${tokensBought.toLocaleString()} GRAM 💎`, 'success');
+      showToast(`Инвестиция успешна! Приобретено ${tokensBought.toLocaleString()} GRAM 💎`, 'success');
     } catch (err) {
       showToast('Отменено.', 'error');
     } finally {
@@ -521,12 +519,12 @@ function MinterApp() {
   const handleWithdrawTokens = async () => {
     if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
     const amountToWithdraw = parseFloat(withdrawInputAmount);
-    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) { showToast('Минимум 100,000 GRAM', 'error'); return; }
-    if (amountToWithdraw > gameScore) { showToast('Недостаточно намайненных GRAM', 'error'); return; }
+    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) { showToast('Минимум 100,000 GRAM-TOKEH-START', 'error'); return; }
+    if (amountToWithdraw > gameScore) { showToast('Недостаточно намайненных GRAM-TOKEH-START', 'error'); return; }
 
     setWithdrawing(true);
     try {
-      const commentText = `WITHDRAW_GRAM | Amount:${amountToWithdraw} | Wallet:${userAddress}`;
+      const commentText = `WITHDRAW_GRAM_TOKEH_START | Amount:${amountToWithdraw} | Wallet:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
@@ -537,9 +535,9 @@ function MinterApp() {
       
       const newBal = gameScore - amountToWithdraw;
       setGameScore(newBal);
-      localStorage.setItem(`game_score_${tgUser.id}`, newBal.toString());
+      localStorage.setItem(`game_score_start_${tgUser.id}`, newBal.toString());
       
-      showToast('Запрос на вывод GRAM отправлен!', 'success');
+      showToast('Запрос на вывод GRAM-TOKEH-START отправлен!', 'success');
     } catch (err) {
       showToast('Отменено.', 'error');
     } finally {
@@ -663,7 +661,7 @@ function MinterApp() {
         userId={tgUser.id}
         onClaimReward={(amt) => {
           addGramTokens(amt);
-          showToast(`Вы получили ежедневный бонус +${amt} GRAM! 🎉`, 'success');
+          showToast(`Вы получили ежедневный бонус +${amt} GRAM-TOKEH-START! 🎉`, 'success');
         }}
       />
 
