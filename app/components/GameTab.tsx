@@ -1,5 +1,7 @@
 'use client';
 
+import AutofarmSection from './AutofarmSection';
+
 interface GameTabProps {
   gameScore: number;
   tapPower: number;
@@ -9,11 +11,13 @@ interface GameTabProps {
   energyLimitLevel: number;
   floatingNumbers: { id: number; x: number; y: number; val: number }[];
   isTapped: boolean;
+  farmBalance: number;
   onCoinClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   onUpgradeMultitap: () => void;
   onUpgradeEnergyLimit: () => void;
   onOpenDaily: () => void;
   onOpenLeaderboard: () => void;
+  onClaimFarm: () => void;
 }
 
 export default function GameTab({
@@ -25,11 +29,13 @@ export default function GameTab({
   energyLimitLevel,
   floatingNumbers,
   isTapped,
+  farmBalance,
   onCoinClick,
   onUpgradeMultitap,
   onUpgradeEnergyLimit,
   onOpenDaily,
   onOpenLeaderboard,
+  onClaimFarm,
 }: GameTabProps) {
   return (
     <div className="space-y-3 text-center animate-fadeIn">
@@ -65,7 +71,7 @@ export default function GameTab({
         </div>
 
         {/* Монета кликера */}
-        <div className="relative flex items-center justify-center py-6 select-none h-44">
+        <div className="relative flex items-center justify-center py-4 select-none h-40">
           {floatingNumbers.map((item) => (
             <div
               key={item.id}
@@ -78,14 +84,14 @@ export default function GameTab({
 
           <div
             onClick={onCoinClick}
-            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/20 via-sky-500/20 to-blue-600/20 flex items-center justify-center shadow-2xl shadow-cyan-500/40 cursor-pointer transition-transform duration-75 p-2 border-2 border-cyan-500/40 relative group ${
+            className={`w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-500/20 via-sky-500/20 to-blue-600/20 flex items-center justify-center shadow-2xl shadow-cyan-500/40 cursor-pointer transition-transform duration-75 p-2 border-2 border-cyan-500/40 relative group ${
               isTapped ? 'scale-90' : 'scale-100 hover:scale-105'
             }`}
           >
             <img 
               src="https://cdn.dedust.io/images/jetton:0:d36c08089460188aaaf294bb1f5fcef54b1e99a5e70d28840ba36ed682d7e0ac.webp?v=1794238582" 
               alt="GRAM Coin" 
-              className="w-28 h-28 object-contain rounded-full drop-shadow-2xl select-none pointer-events-none"
+              className="w-24 h-24 object-contain rounded-full drop-shadow-2xl select-none pointer-events-none"
             />
           </div>
         </div>
@@ -100,6 +106,9 @@ export default function GameTab({
             <div className="bg-gradient-to-r from-cyan-500 to-sky-400 h-full transition-all duration-300" style={{ width: `${(energy / maxEnergy) * 100}%` }}></div>
           </div>
         </div>
+
+        {/* Блок авто-фарма */}
+        <AutofarmSection farmBalance={farmBalance} onClaimFarm={onClaimFarm} />
 
         {/* Бустеры */}
         <div className="pt-2 border-t border-white/10 space-y-2 text-left">
