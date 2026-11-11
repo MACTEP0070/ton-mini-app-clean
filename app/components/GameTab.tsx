@@ -17,7 +17,7 @@ interface GameTabProps {
   onUpgradeEnergyLimit: () => void;
   onOpenDaily: () => void;
   onOpenLeaderboard: () => void;
-  onOpenStars: () => void;
+  onOpenShop: () => void;
   onClaimFarm: () => void;
 }
 
@@ -36,7 +36,7 @@ export default function GameTab({
   onUpgradeEnergyLimit,
   onOpenDaily,
   onOpenLeaderboard,
-  onOpenStars,
+  onOpenShop,
   onClaimFarm,
 }: GameTabProps) {
   return (
@@ -62,7 +62,7 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Кнопки быстрого доступа */}
+        {/* Кнопки быстрого доступа (Бонус, Топ, Магазин TON) */}
         <div className="grid grid-cols-3 gap-2 relative z-10">
           <button
             type="button"
@@ -80,16 +80,15 @@ export default function GameTab({
           </button>
           <button
             type="button"
-            onClick={onOpenStars}
-            className="py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-[11px] rounded-2xl shadow-lg shadow-amber-500/10 flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:bg-amber-500/30"
+            onClick={onOpenShop}
+            className="py-2.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 text-cyan-300 font-extrabold text-[11px] rounded-2xl shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:bg-cyan-500/30"
           >
-            <span>⭐</span> Stars
+            <span>🛒</span> Магазин
           </button>
         </div>
 
-        {/* Интерактивная монета с жестким контейнером без сдвигов */}
+        {/* Интерактивная монета */}
         <div className="relative flex items-center justify-center py-2 select-none h-40 z-10">
-          {/* Плавающие цифры */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
             {floatingNumbers.map((item) => (
               <div
@@ -102,7 +101,6 @@ export default function GameTab({
             ))}
           </div>
 
-          {/* Обертка с абсолютным центрированием, чтобы клик и анимация сжатия происходили строго внутри фиксированной зоны */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div
               onClick={onCoinClick}
@@ -135,7 +133,6 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Авто-фарм */}
         <div className="relative z-10">
           <AutofarmSection farmBalance={farmBalance} onClaimFarm={onClaimFarm} />
         </div>
