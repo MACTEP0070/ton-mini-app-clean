@@ -62,7 +62,7 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Премиальные кнопки быстрого доступа */}
+        {/* Кнопки быстрого доступа */}
         <div className="grid grid-cols-3 gap-2 relative z-10">
           <button
             type="button"
@@ -87,7 +87,7 @@ export default function GameTab({
           </button>
         </div>
 
-        {/* Интерактивная монета с неоновым ореолом */}
+        {/* Интерактивная монета с пружинящей анимацией */}
         <div className="relative flex items-center justify-center py-6 select-none h-44 z-10">
           {floatingNumbers.map((item) => (
             <div
@@ -101,8 +101,8 @@ export default function GameTab({
 
           <div
             onClick={onCoinClick}
-            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/30 via-sky-500/20 to-blue-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.3)] cursor-pointer transition-transform duration-100 p-2.5 border-2 border-cyan-400/50 relative group active:scale-90 ${
-              isTapped ? 'scale-95' : 'hover:scale-105'
+            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/30 via-sky-500/20 to-blue-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.3)] cursor-pointer p-2.5 border-2 border-cyan-400/50 relative group ${
+              isTapped ? 'coin-press' : 'hover:scale-105 transition-transform duration-200'
             }`}
           >
             <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping pointer-events-none"></div>
@@ -114,7 +114,7 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Шкала энергии со свечением */}
+        {/* Шкала энергии */}
         <div className="space-y-1.5 text-left relative z-10">
           <div className="flex justify-between text-[11px] font-mono font-bold">
             <span className="text-slate-300 flex items-center gap-1"><span>⚡</span> Энергия</span>
@@ -128,12 +128,12 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Блок авто-фарма */}
+        {/* Авто-фарм */}
         <div className="relative z-10">
           <AutofarmSection farmBalance={farmBalance} onClaimFarm={onClaimFarm} />
         </div>
 
-        {/* Блок улучшений в стиле стекломорфизма */}
+        {/* Улучшения */}
         <div className="pt-2 border-t border-white/10 space-y-2 text-left relative z-10">
           <div className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">🛠 Улучшения тапа и энергии:</div>
           
