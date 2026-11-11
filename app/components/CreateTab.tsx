@@ -116,21 +116,26 @@ export default function CreateTab({
             />
           </div>
 
-          {/* Чекбокс ликвидности */}
-          <div className="bg-slate-950/70 border border-amber-500/20 rounded-2xl p-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <input
-                type="checkbox"
-                id="liq"
-                checked={addLiquidity}
-                onChange={(e) => setAddLiquidity(e.target.checked)}
-                className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-              />
-              <label htmlFor="liq" className="text-xs font-bold text-slate-200 cursor-pointer">
-                Авто-создание пула ликвидности (DeDust / STON.fi)
-              </label>
+          {/* Чекбокс и описание пула ликвидности */}
+          <div className="bg-slate-950/70 border border-amber-500/20 rounded-2xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  id="liq"
+                  checked={addLiquidity}
+                  onChange={(e) => setAddLiquidity(e.target.checked)}
+                  className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                />
+                <label htmlFor="liq" className="text-xs font-bold text-slate-200 cursor-pointer">
+                  Авто-создание пула ликвидности (DeDust / STON.fi)
+                </label>
+              </div>
+              <span className="text-[10px] text-amber-400 font-mono font-bold">+0.5 TON</span>
             </div>
-            <span className="text-[10px] text-amber-400 font-mono font-bold">+0.5 TON</span>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Пул ликвидности связывает ваш новый токен с TON, позволяя пользователям свободно покупать и продавать его на децентрализованных биржах (DEX) сразу после выпуска. Часть ваших токенов и указанная сумма TON будут заблокированы в пуле для обеспечения стабильной торговли.
+            </p>
           </div>
 
           {addLiquidity && (
@@ -142,7 +147,7 @@ export default function CreateTab({
                 onChange={(e) => setLiquidityAmount(e.target.value)}
                 className="w-full bg-slate-950/80 border border-amber-500/30 rounded-2xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
               />
-              <span className="text-[9px] text-slate-500 block">Часть ваших токенов будет автоматически залочена в децентрализованном пуле.</span>
+              <span className="text-[9px] text-slate-500 block">Начальная поддержка ликвидности в TON для вашей торговой пары.</span>
             </div>
           )}
         </div>
