@@ -28,8 +28,8 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         </div>
       </div>
 
-      {/* Навигационные табы: Игра, Арена, Инвест, Стейк, Управление, Создать (шестым) */}
-      <div className="grid grid-cols-6 gap-1 bg-[#0d121f]/80 p-1.5 rounded-2xl border border-white/5">
+      {/* Навигационные табы (5 штук) */}
+      <div className="grid grid-cols-5 gap-1 bg-[#0d121f]/80 p-1.5 rounded-2xl border border-white/5">
         <button
           type="button"
           onClick={() => onTabChange('game')}
@@ -40,17 +40,6 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
           }`}
         >
           🎮 Игра
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('arena')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'arena'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          ⚔️ Арена
         </button>
         <button
           type="button"
