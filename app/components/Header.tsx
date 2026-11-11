@@ -1,90 +1,59 @@
 'use client';
 
-import { TonConnectButton } from '@tonconnect/ui-react';
+import { useTonConnectButton } from '@tonconnect/ui-react';
 
 interface HeaderProps {
   tgUser: { id: string; name: string; username?: string };
-  activeTab: string;
-  onTabChange: (tab: any) => void;
+  activeTab: 'create' | 'manage' | 'presale' | 'staking' | 'game';
+  onTabChange: (tab: 'create' | 'manage' | 'presale' | 'staking' | 'game') => void;
 }
 
 export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) {
   return (
-    <header className="w-full max-w-md space-y-3 pt-1 pb-2">
-      {/* Верхняя строка с профилем и кошельком */}
-      <div className="flex items-center justify-between bg-[#0d121f]/90 p-3 rounded-2xl border border-white/5 shadow-lg backdrop-blur-xl">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-sm shadow-md">
+    <header className="w-full max-w-md space-y-3 pt-1">
+      {/* Информация о пользователе и TON Connect кнопка */}
+      <div className="glass-card px-4 py-3 rounded-2xl flex items-center justify-between border border-white/10 shadow-lg">
+        <div className="flex items-center gap-2.5 truncate">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center font-black text-slate-950 text-sm shadow-md shrink-0">
             {tgUser.name.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div className="text-xs font-black text-white truncate max-w-[110px]">{tgUser.name}</div>
+          <div className="truncate">
+            <div className="text-xs font-bold text-white truncate">{tgUser.name}</div>
             <div className="text-[10px] text-slate-400 font-mono">ID: {tgUser.id}</div>
           </div>
         </div>
-
+        
+        {/* Кнопка кошелька */}
         <div className="scale-90 origin-right">
-          <TonConnectButton />
+          <div id="ton-connect-button" />
         </div>
       </div>
 
-      {/* Навигационные табы: Игра, Создать, Инвест, Стейк, Управление */}
-      <div className="grid grid-cols-5 gap-1 bg-[#0d121f]/80 p-1.5 rounded-2xl border border-white/5">
-        <button
-          type="button"
-          onClick={() => onTabChange('game')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'game'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🎮 Игра
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('create')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'create'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🚀 Создать
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('presale')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'presale'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          💎 Инвест
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('staking')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'staking'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🔒 Стейк
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('manage')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'manage'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          ⚙️ Упр.
-        </button>
+      {/* Навигация по вкладкам (Скроллируемый премиум-дизайн) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+        {[
+          { id: 'game', label: '🎮 Игра' },
+          { id: 'presale', label: '💎 Инвест' },
+          { id: 'staking', label: '🔒 Стейк' },
+          { id: 'create', label: '🚀 Создать' },
+          { id: 'manage', label: '⚙️ Упр.' },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id as any)}
+              className={`px-3.5 py-2.5 rounded-xl font-extrabold text-xs whitespace-nowrap transition-all flex items-center gap-1.5 shadow-md ${
+                isActive
+                  ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105'
+                  : 'bg-slate-950/60 text-slate-300 border border-white/5 hover:bg-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
     </header>
   );
