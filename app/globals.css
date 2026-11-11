@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer utilities {
-  /* Кастомное стекло */
+  /* Кастомный эффект стеклянной карты */
   .glass-card {
     background: rgba(13, 18, 31, 0.85);
     backdrop-filter: blur(20px);
@@ -11,7 +11,7 @@
   }
 }
 
-/* Плавные анимации для кликера */
+/* Плавные анимации для кликера и всплывающих очков */
 @keyframes floatUp {
   0% {
     opacity: 1;
@@ -19,22 +19,38 @@
   }
   50% {
     opacity: 1;
-    transform: translateY(-30px) scale(1.2);
+    transform: translateY(-35px) scale(1.2);
   }
   100% {
     opacity: 0;
-    transform: translateY(-60px) scale(1);
+    transform: translateY(-70px) scale(1);
   }
 }
 
 .animate-floatUp {
-  animation: floatUp 0.8s ease-out forwards;
+  animation: floatUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-/* Базовые цвета и скроллбар */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Базовые параметры страницы */
 body {
   background-color: #05070c;
   color: #f8fafc;
   font-family: var(--font-sans), sans-serif;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
