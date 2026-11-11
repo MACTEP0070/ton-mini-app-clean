@@ -28,7 +28,7 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         </div>
       </div>
 
-      {/* Навигационные табы (5 штук) */}
+      {/* Навигационные табы: Игра, Создать, Инвест, Стейк, Управление */}
       <div className="grid grid-cols-5 gap-1 bg-[#0d121f]/80 p-1.5 rounded-2xl border border-white/5">
         <button
           type="button"
@@ -40,6 +40,17 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
           }`}
         >
           🎮 Игра
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange('create')}
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
+            activeTab === 'create'
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          🚀 Создать
         </button>
         <button
           type="button"
@@ -73,17 +84,6 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
           }`}
         >
           ⚙️ Упр.
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('create')}
-          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
-            activeTab === 'create'
-              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🚀 Создать
         </button>
       </div>
     </header>
