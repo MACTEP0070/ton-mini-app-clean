@@ -41,7 +41,7 @@ export default function GameTab({
 }: GameTabProps) {
   return (
     <div className="space-y-3.5 text-center animate-fadeIn">
-      <div className="bg-gradient-to-b from-[#111726]/90 to-[#070b14]/95 p-4 rounded-3xl border border-cyan-500/30 shadow-2xl space-y-3.5 backdrop-blur-xl relative overflow-hidden">
+      <div className="glass-card p-4 rounded-3xl space-y-3.5 relative overflow-hidden">
         
         {/* Фоновое неоновое свечение */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -87,23 +87,27 @@ export default function GameTab({
           </button>
         </div>
 
-        {/* Интерактивная монета с пружинящей анимацией */}
-        <div className="relative flex items-center justify-center py-6 select-none h-44 z-10">
-          {floatingNumbers.map((item) => (
-            <div
-              key={item.id}
-              className="absolute text-cyan-300 font-black text-lg font-mono pointer-events-none animate-floatUp z-30 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
-              style={{ left: `${item.x}px`, top: `${item.y}px` }}
-            >
-              +{item.val}
-            </div>
-          ))}
+        {/* Интерактивная монета с фиксированной областью */}
+        <div className="relative flex items-center justify-center py-4 select-none h-40 z-10">
+          {/* Плавающие цифры теперь строго absolute поверх всего, не двигая элементы */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
+            {floatingNumbers.map((item) => (
+              <div
+                key={item.id}
+                className="absolute text-cyan-300 font-black text-lg font-mono animate-floatUp drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
+                style={{ left: `${item.x}px`, top: `${item.y}px` }}
+              >
+                +{item.val}
+              </div>
+            ))}
+          </div>
 
           <div
             onClick={onCoinClick}
             className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/30 via-sky-500/20 to-blue-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.3)] cursor-pointer p-2.5 border-2 border-cyan-400/50 relative group ${
               isTapped ? 'coin-press' : 'hover:scale-105 transition-transform duration-200'
             }`}
+            style={{ transformOrigin: 'center center' }}
           >
             <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping pointer-events-none"></div>
             <img 
