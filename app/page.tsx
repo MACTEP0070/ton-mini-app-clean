@@ -93,7 +93,7 @@ function MinterApp() {
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Игра и Авто-фарм
+  // Игра и Новая экономика (Авто-майнер, Криты)
   const [gameScore, setGameScore] = useState<number>(0);
   const [farmBalance, setFarmBalance] = useState<number>(0);
   const [energy, setEnergy] = useState<number>(1000);
@@ -101,12 +101,26 @@ function MinterApp() {
   const [tapPower, setTapPower] = useState<number>(1);
   const [multitapLevel, setMultitapLevel] = useState<number>(1);
   const [energyLimitLevel, setEnergyLimitLevel] = useState<number>(1);
-  const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number }[]>([]);
-  const [isTapped, setIsTapped] = useState<boolean>(false);
+  const [autoMinerLevel, setAutoMinerLevel] = useState<number>(0);
+  const [critChanceLevel, setCritChanceLevel] = useState<number>(0);
+  const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number; isCrit?: boolean }[]>([]);
 
   useEffect(() => {
     const gameEngine = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
+      
+      // Авто-майнер пассивный доход каждую секунду
+      const autoIncome = autoMinerLevel * 1.5;
+      if (autoIncome > 0) {
+        setGameScore((prev) => {
+          const updated = prev + autoIncome;
+          if (tgUser.id) {
+            localStorage.setItem(`game_score_${tgUser.id}`, updated.toString());
+          }
+          return updated;
+        });
+      }
+
       setFarmBalance((prev) => {
         const updated = prev + 0.5;
         if (tgUser.id) {
@@ -119,7 +133,7 @@ function MinterApp() {
     return () => {
       clearInterval(gameEngine);
     };
-  }, [maxEnergy, tgUser.id]);
+  }, [maxEnergy, autoMinerLevel, tgUser.id]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -168,6 +182,12 @@ function MinterApp() {
         setMaxEnergy(1000 + (lvl - 1) * 500);
         setEnergy(1000 + (lvl - 1) * 500);
       }
+
+      const savedAutoMiner = localStorage.getItem(`game_autominer_${currentId}`);
+      if (savedAutoMiner) setAutoMinerLevel(parseInt(savedAutoMiner));
+
+      const savedCrit = localStorage.getItem(`game_crit_${currentId}`);
+      if (savedCrit) setCritChanceLevel(parseInt(savedCrit));
 
       const subStatus = localStorage.getItem(`subscribed_${currentId}`);
       if (subStatus === 'true') setIsSubscribed(true);
@@ -292,22 +312,26 @@ function MinterApp() {
     const x = e.clientX - containerRect.left;
     const y = e.clientY - containerRect.top;
 
+    // Шанс критического удара (каждый уровень дает +2% шанса выбить x5)
+    const critChance = critChanceLevel * 2;
+    const isCrit = Math.random() * 100 < critChance;
+    const earnedVal = isCrit ? tapPower * 5 : tapPower;
+
     setEnergy((prev) => Math.max(0, prev - tapPower));
-    const newScore = gameScore + tapPower;
+    const newScore = gameScore + earnedVal;
     setGameScore(newScore);
     localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
 
-    setIsTapped(true);
-    setTimeout(() => setIsTapped(false), 100);
-
     const newId = Date.now() + Math.random();
-    setFloatingNumbers((prev) => [...prev, { id: newId, x, y, val: tapPower }]);
+    setFloatingNumbers((prev) => [...prev, { id: newId, x, y, val: earnedVal, isCrit }]);
     setTimeout(() => {
       setFloatingNumbers((prev) => prev.filter((item) => item.id !== newId));
     }, 800);
 
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
-      (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      const haptic = (window as any).Telegram.WebApp.HapticFeedback;
+      if (isCrit) haptic.notificationOccurred('success');
+      else haptic.impactOccurred('light');
     }
   };
 
@@ -343,6 +367,36 @@ function MinterApp() {
     localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
     localStorage.setItem(`game_energylimit_${tgUser.id}`, newLvl.toString());
     showToast(`Энергия повышена до ур. ${newLvl}! 🔋`, 'success');
+  };
+
+  const upgradeAutoMiner = () => {
+    const cost = (autoMinerLevel + 1) * 500;
+    if (gameScore < cost) {
+      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
+      return;
+    }
+    const newScore = gameScore - cost;
+    const newLvl = autoMinerLevel + 1;
+    setGameScore(newScore);
+    setAutoMinerLevel(newLvl);
+    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+    localStorage.setItem(`game_autominer_${tgUser.id}`, newLvl.toString());
+    showToast(`Авто-майнер улучшен до ур. ${newLvl}! 🤖`, 'success');
+  };
+
+  const upgradeCritChance = () => {
+    const cost = (critChanceLevel + 1) * 400;
+    if (gameScore < cost) {
+      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
+      return;
+    }
+    const newScore = gameScore - cost;
+    const newLvl = critChanceLevel + 1;
+    setGameScore(newScore);
+    setCritChanceLevel(newLvl);
+    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+    localStorage.setItem(`game_crit_${tgUser.id}`, newLvl.toString());
+    showToast(`Lucky Crit повышен до ур. ${newLvl}! 🔥`, 'success');
   };
 
   const handleCheckSubscription = () => {
@@ -511,12 +565,15 @@ function MinterApp() {
               maxEnergy={maxEnergy}
               multitapLevel={multitapLevel}
               energyLimitLevel={energyLimitLevel}
+              autoMinerLevel={autoMinerLevel}
+              critChanceLevel={critChanceLevel}
               floatingNumbers={floatingNumbers}
-              isTapped={isTapped}
               farmBalance={farmBalance}
               onCoinClick={handleCoinClick}
               onUpgradeMultitap={upgradeMultitap}
               onUpgradeEnergyLimit={upgradeEnergyLimit}
+              onUpgradeAutoMiner={upgradeAutoMiner}
+              onUpgradeCritChance={upgradeCritChance}
               onOpenDaily={() => setIsDailyOpen(true)}
               onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
               onOpenShop={() => setIsShopOpen(true)}
