@@ -12,6 +12,7 @@ interface GameTabProps {
   onCoinClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   onUpgradeMultitap: () => void;
   onUpgradeEnergyLimit: () => void;
+  onOpenDaily: () => void;
 }
 
 export default function GameTab({
@@ -26,6 +27,7 @@ export default function GameTab({
   onCoinClick,
   onUpgradeMultitap,
   onUpgradeEnergyLimit,
+  onOpenDaily,
 }: GameTabProps) {
   return (
     <div className="space-y-3 text-center animate-fadeIn">
@@ -42,6 +44,16 @@ export default function GameTab({
           </div>
         </div>
 
+        {/* Кнопка ежедневного бонуса */}
+        <button
+          type="button"
+          onClick={onOpenDaily}
+          className="w-full py-2.5 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+          <span>🎁 Ежедневный бонус</span>
+        </button>
+
+        {/* Монета кликера */}
         <div className="relative flex items-center justify-center py-6 select-none h-44">
           {floatingNumbers.map((item) => (
             <div
@@ -67,6 +79,7 @@ export default function GameTab({
           </div>
         </div>
 
+        {/* Шкала энергии */}
         <div className="space-y-1 text-left">
           <div className="flex justify-between text-[11px] font-mono">
             <span className="text-slate-300">⚡ Энергия</span>
@@ -77,6 +90,7 @@ export default function GameTab({
           </div>
         </div>
 
+        {/* Бустеры */}
         <div className="pt-2 border-t border-white/10 space-y-2 text-left">
           <div className="text-[11px] font-bold text-cyan-400 uppercase">🛠 Улучшения:</div>
           
