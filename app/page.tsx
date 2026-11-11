@@ -17,6 +17,7 @@ import StakingTab from './components/StakingTab';
 import GameTab from './components/GameTab';
 import DailyRewardsModal from './components/DailyRewardsModal';
 import LeaderboardModal from './components/LeaderboardModal';
+import TelegramStarsModal from './components/TelegramStarsModal';
 
 interface Toast {
   id: number;
@@ -31,6 +32,7 @@ function MinterApp() {
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('game');
   const [isDailyOpen, setIsDailyOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isStarsOpen, setIsStarsOpen] = useState(false);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -113,7 +115,6 @@ function MinterApp() {
       });
     }, 1000);
 
-    // Восстановление энергии и пассивный фарм (1 монетка каждые 2 секунды)
     const gameEngine = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
       setFarmBalance((prev) => {
@@ -210,6 +211,21 @@ function MinterApp() {
     localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
     localStorage.setItem(`farm_balance_${tgUser.id}`, '0');
     showToast(`Собрано с шахты: +${earned} GRAM! ⛏️`, 'success');
+  };
+
+  const handleBuyTelegramStars = (stars: number, rewardType: 'energy' | 'boost') => {
+    // В реальном Telegram Mini App здесь вызывается tg.openInvoice() для оплаты Stars.
+    // Для демонстрации сразу выдаем бонус:
+    if (rewardType === 'energy') {
+      setEnergy(maxEnergy);
+      showToast(`Успешно! Энергия полностью восстановлена за ${stars} ⭐`, 'success');
+    } else if (rewardType === 'boost') {
+      const newScore = gameScore + 5000;
+      setGameScore(newScore);
+      localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+      showToast(`Успешно! +5,000 GRAM зачислено за ${stars} ⭐`, 'success');
+    }
+    setIsStarsOpen(false);
   };
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
@@ -563,6 +579,7 @@ function MinterApp() {
               onUpgradeEnergyLimit={upgradeEnergyLimit}
               onOpenDaily={() => setIsDailyOpen(true)}
               onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+              onOpenStars={() => setIsStarsOpen(true)}
               onClaimFarm={handleClaimFarm}
             />
           )}
@@ -585,6 +602,12 @@ function MinterApp() {
         onClose={() => setIsLeaderboardOpen(false)}
         userScore={gameScore}
         userName={tgUser.name}
+      />
+
+      <TelegramStarsModal
+        isOpen={isStarsOpen}
+        onClose={() => setIsStarsOpen(false)}
+        onBuyItem={handleBuyTelegramStars}
       />
 
       <footer className="w-full max-w-md text-center pb-1 text-[9px] text-slate-500">
