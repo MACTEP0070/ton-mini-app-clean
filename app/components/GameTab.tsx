@@ -17,6 +17,7 @@ interface GameTabProps {
   onUpgradeEnergyLimit: () => void;
   onOpenDaily: () => void;
   onOpenLeaderboard: () => void;
+  onOpenStars: () => void;
   onClaimFarm: () => void;
 }
 
@@ -35,6 +36,7 @@ export default function GameTab({
   onUpgradeEnergyLimit,
   onOpenDaily,
   onOpenLeaderboard,
+  onOpenStars,
   onClaimFarm,
 }: GameTabProps) {
   return (
@@ -52,21 +54,28 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Кнопки бонусов и лидеров в один ряд */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Кнопки бонусов, лидеров и звезд в ряд */}
+        <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
             onClick={onOpenDaily}
-            className="py-2.5 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+            className="py-2 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-[10px] rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
           >
             <span>🎁 Бонус</span>
           </button>
           <button
             type="button"
             onClick={onOpenLeaderboard}
-            className="py-2.5 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+            className="py-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-[10px] rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
           >
             <span>🏆 Топ</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenStars}
+            className="py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-300 font-bold text-[10px] rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+          >
+            <span>⭐ Stars</span>
           </button>
         </div>
 
