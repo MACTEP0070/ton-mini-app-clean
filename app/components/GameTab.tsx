@@ -9,12 +9,15 @@ interface GameTabProps {
   maxEnergy: number;
   multitapLevel: number;
   energyLimitLevel: number;
-  floatingNumbers: { id: number; x: number; y: number; val: number }[];
-  isTapped: boolean;
+  autoMinerLevel: number;
+  critChanceLevel: number;
+  floatingNumbers: { id: number; x: number; y: number; val: number; isCrit?: boolean }[];
   farmBalance: number;
   onCoinClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   onUpgradeMultitap: () => void;
   onUpgradeEnergyLimit: () => void;
+  onUpgradeAutoMiner: () => void;
+  onUpgradeCritChance: () => void;
   onOpenDaily: () => void;
   onOpenLeaderboard: () => void;
   onOpenShop: () => void;
@@ -28,12 +31,15 @@ export default function GameTab({
   maxEnergy,
   multitapLevel,
   energyLimitLevel,
+  autoMinerLevel,
+  critChanceLevel,
   floatingNumbers,
-  isTapped,
   farmBalance,
   onCoinClick,
   onUpgradeMultitap,
   onUpgradeEnergyLimit,
+  onUpgradeAutoMiner,
+  onUpgradeCritChance,
   onOpenDaily,
   onOpenLeaderboard,
   onOpenShop,
@@ -48,10 +54,10 @@ export default function GameTab({
 
         <div className="flex items-center justify-between relative z-10 bg-slate-950/50 p-2.5 rounded-2xl border border-white/5">
           <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-            <span>⚡</span> GRAM Clicker
+            <span>⚡</span> GRAM FightClub
           </span>
           <span className="text-[11px] bg-amber-500/20 text-amber-300 px-3 py-1 rounded-xl font-extrabold font-mono border border-amber-500/30">
-            +{tapPower} за тап
+            +{tapPower} тап
           </span>
         </div>
 
@@ -87,27 +93,25 @@ export default function GameTab({
           </button>
         </div>
 
-        {/* Контейнер монеты с красивой пружинистой анимацией и фиксированной высотой */}
+        {/* Интерактивная монета */}
         <div className="relative w-full h-44 flex items-center justify-center select-none z-10 my-1">
-          {/* Слой для всплывающих цифр урона */}
           <div className="absolute inset-0 pointer-events-none overflow-visible z-30">
             {floatingNumbers.map((item) => (
               <div
                 key={item.id}
-                className="absolute text-amber-300 font-black text-lg font-mono pointer-events-none animate-floatUp drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]"
+                className={`absolute font-black font-mono pointer-events-none animate-floatUp drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] ${
+                  item.isCrit ? 'text-red-400 text-2xl scale-125' : 'text-amber-300 text-lg'
+                }`}
                 style={{ left: `${item.x}px`, top: `${item.y}px` }}
               >
-                +{item.val}
+                {item.isCrit ? `⚡ CRIT +${item.val}! x5` : `+${item.val}`}
               </div>
             ))}
           </div>
 
-          {/* Сама монета с сочной анимацией scale */}
           <div
             onClick={onCoinClick}
-            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-amber-500/30 via-yellow-500/20 to-orange-600/30 flex items-center justify-center shadow-[0_0_35px_rgba(245,158,11,0.35)] cursor-pointer p-2.5 border-2 border-amber-400/50 relative select-none transform transition-transform duration-100 ease-out ${
-              isTapped ? 'scale-90 rotate-1' : 'scale-100 hover:scale-105'
-            }`}
+            className="w-36 h-36 rounded-full bg-gradient-to-tr from-amber-500/30 via-yellow-500/20 to-orange-600/30 flex items-center justify-center shadow-[0_0_35px_rgba(245,158,11,0.35)] cursor-pointer p-2.5 border-2 border-amber-400/50 relative select-none transition-transform duration-100 ease-out active:scale-90 hover:scale-105"
             style={{ transformOrigin: 'center center' }}
           >
             <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping pointer-events-none"></div>
@@ -137,12 +141,13 @@ export default function GameTab({
           <AutofarmSection farmBalance={farmBalance} onClaimFarm={onClaimFarm} />
         </div>
 
-        {/* Прокачка */}
-        <div className="pt-2 border-t border-white/10 space-y-2 text-left relative z-10">
+        {/* Прокачка (Улучшения) */}
+        <div className="pt-2 border-t border-white/10 space-y-2.5 text-left relative z-10">
           <div className="text-[11px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
-            <span>🛠</span> Улучшения тапа и энергии:
+            <span>🛠</span> Боевой арсенал прокачки:
           </div>
           
+          {/* Multitap */}
           <div className="bg-slate-950/60 p-3 rounded-2xl border border-white/5 flex items-center justify-between shadow-md">
             <div>
               <div className="text-xs font-bold text-white flex items-center gap-1.5"><span>⚡</span> Multitap <span className="text-amber-400 font-mono text-[10px] bg-amber-500/10 px-2 py-0.5 rounded-lg">(Ур. {multitapLevel})</span></div>
@@ -157,6 +162,7 @@ export default function GameTab({
             </button>
           </div>
 
+          {/* Energy Limit */}
           <div className="bg-slate-950/60 p-3 rounded-2xl border border-white/5 flex items-center justify-between shadow-md">
             <div>
               <div className="text-xs font-bold text-white flex items-center gap-1.5"><span>🔋</span> Energy Limit <span className="text-amber-400 font-mono text-[10px] bg-amber-500/10 px-2 py-0.5 rounded-lg">(Ур. {energyLimitLevel})</span></div>
@@ -165,6 +171,36 @@ export default function GameTab({
             <button
               type="button"
               onClick={onUpgradeEnergyLimit}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg active:scale-95 transition-all hover:brightness-110"
+            >
+              Улучшить
+            </button>
+          </div>
+
+          {/* Авто-майнер */}
+          <div className="bg-slate-950/60 p-3 rounded-2xl border border-white/5 flex items-center justify-between shadow-md">
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-1.5"><span>🤖</span> Auto-Miner <span className="text-amber-400 font-mono text-[10px] bg-amber-500/10 px-2 py-0.5 rounded-lg">(Ур. {autoMinerLevel})</span></div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">Доход: +{(autoMinerLevel * 1.5).toFixed(1)}/сек | Цена: <strong className="text-amber-300">{(autoMinerLevel * 500).toLocaleString()} GRAM</strong></div>
+            </div>
+            <button
+              type="button"
+              onClick={onUpgradeAutoMiner}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg active:scale-95 transition-all hover:brightness-110"
+            >
+              Улучшить
+            </button>
+          </div>
+
+          {/* Шанс критического удара */}
+          <div className="bg-slate-950/60 p-3 rounded-2xl border border-white/5 flex items-center justify-between shadow-md">
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-1.5"><span>🔥</span> Lucky Crit <span className="text-amber-400 font-mono text-[10px] bg-amber-500/10 px-2 py-0.5 rounded-lg">(Ур. {critChanceLevel})</span></div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">Шанс x5: +{critChanceLevel * 2}% | Цена: <strong className="text-amber-300">{(critChanceLevel * 400).toLocaleString()} GRAM</strong></div>
+            </div>
+            <button
+              type="button"
+              onClick={onUpgradeCritChance}
               className="px-3.5 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg active:scale-95 transition-all hover:brightness-110"
             >
               Улучшить
