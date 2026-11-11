@@ -89,8 +89,9 @@ function MinterApp() {
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Игра
+  // Игра и Авто-фарм
   const [gameScore, setGameScore] = useState<number>(0);
+  const [farmBalance, setFarmBalance] = useState<number>(0);
   const [energy, setEnergy] = useState<number>(1000);
   const [maxEnergy, setMaxEnergy] = useState<number>(1000);
   const [tapPower, setTapPower] = useState<number>(1);
@@ -112,15 +113,23 @@ function MinterApp() {
       });
     }, 1000);
 
-    const energyTimer = setInterval(() => {
+    // Восстановление энергии и пассивный фарм (1 монетка каждые 2 секунды)
+    const gameEngine = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
+      setFarmBalance((prev) => {
+        const updated = prev + 0.5;
+        if (tgUser.id) {
+          localStorage.setItem(`farm_balance_${tgUser.id}`, updated.toString());
+        }
+        return updated;
+      });
     }, 1000);
 
     return () => {
       clearInterval(timer);
-      clearInterval(energyTimer);
+      clearInterval(gameEngine);
     };
-  }, [maxEnergy]);
+  }, [maxEnergy, tgUser.id]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -161,6 +170,9 @@ function MinterApp() {
       const savedGameScore = localStorage.getItem(`game_score_${currentId}`);
       if (savedGameScore) setGameScore(parseFloat(savedGameScore));
 
+      const savedFarm = localStorage.getItem(`farm_balance_${currentId}`);
+      if (savedFarm) setFarmBalance(parseFloat(savedFarm));
+
       const savedMultitap = localStorage.getItem(`game_multitap_${currentId}`);
       if (savedMultitap) {
         const lvl = parseInt(savedMultitap);
@@ -187,6 +199,17 @@ function MinterApp() {
       localStorage.setItem(`gram_balance_${tgUser.id}`, newBalance.toString());
       return newBalance;
     });
+  };
+
+  const handleClaimFarm = () => {
+    if (farmBalance < 1) return;
+    const earned = Math.floor(farmBalance);
+    const newScore = gameScore + earned;
+    setGameScore(newScore);
+    setFarmBalance(0);
+    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+    localStorage.setItem(`farm_balance_${tgUser.id}`, '0');
+    showToast(`Собрано с шахты: +${earned} GRAM! ⛏️`, 'success');
   };
 
   const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
@@ -534,11 +557,13 @@ function MinterApp() {
               energyLimitLevel={energyLimitLevel}
               floatingNumbers={floatingNumbers}
               isTapped={isTapped}
+              farmBalance={farmBalance}
               onCoinClick={handleCoinClick}
               onUpgradeMultitap={upgradeMultitap}
               onUpgradeEnergyLimit={upgradeEnergyLimit}
               onOpenDaily={() => setIsDailyOpen(true)}
               onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+              onClaimFarm={handleClaimFarm}
             />
           )}
 
