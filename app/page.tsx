@@ -17,13 +17,15 @@ import StakingTab from './components/StakingTab';
 import GameTab from './components/GameTab';
 import DailyRewardsModal from './components/DailyRewardsModal';
 import LeaderboardModal from './components/LeaderboardModal';
-import TelegramStarsModal from './components/TelegramStarsModal';
+import TonShopModal from './components/TonShopModal';
 
 interface Toast {
   id: number;
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
 function MinterApp() {
   const [tonConnectUI] = useTonConnectUI();
@@ -32,7 +34,7 @@ function MinterApp() {
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('game');
   const [isDailyOpen, setIsDailyOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [isStarsOpen, setIsStarsOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -145,18 +147,6 @@ function MinterApp() {
         const u = tg.initDataUnsafe.user;
         currentName = u.first_name + (u.last_name ? ` ${u.last_name}` : '');
         setTgUser({ id: currentId, name: currentName, username: u.username });
-
-        const startParam = tg.initDataUnsafe.start_param;
-        if (startParam && startParam.startsWith('ref_')) {
-          const ref = startParam.replace('ref_', '');
-          if (ref !== currentId) {
-            setReferrerId(ref);
-            localStorage.setItem(`referrer_${currentId}`, ref);
-            const refBalanceKey = `gram_balance_${ref}`;
-            const currentRefBal = parseFloat(localStorage.getItem(refBalanceKey) || '0');
-            localStorage.setItem(refBalanceKey, (currentRefBal + 100).toString());
-          }
-        }
       } else {
         currentId = userAddress || 'local_user';
         setTgUser({ id: currentId, name: 'Web User' });
@@ -213,69 +203,40 @@ function MinterApp() {
     showToast(`Собрано с шахты: +${earned} GRAM! ⛏️`, 'success');
   };
 
-  const handleBuyTelegramStars = (stars: number, rewardType: 'energy' | 'boost') => {
-    if (typeof window !== 'undefined') {
-      const tg = (window as any).Telegram?.WebApp;
+  // Покупка за TON
+  const handleBuyItemWithTon = async (tonAmount: number, rewardType: 'energy' | 'boost') => {
+    if (!userAddress) {
+      showToast('Подключите кошелек для покупки!', 'error');
+      return;
+    }
 
-      if (tg && tg.openInvoice) {
-        fetch(`/api/create-invoice?stars=${stars}&type=${rewardType}&userId=${tgUser.id}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.invoiceLink) {
-              tg.openInvoice(data.invoiceLink, (status: string) => {
-                if (status === 'paid') {
-                  if (rewardType === 'energy') {
-                    setEnergy(maxEnergy);
-                    showToast(`Оплата ${stars} ⭐ успешна! Энергия восстановлена.`, 'success');
-                  } else if (rewardType === 'boost') {
-                    const newScore = gameScore + 5000;
-                    setGameScore(newScore);
-                    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-                    showToast(`Оплата ${stars} ⭐ успешна! +5,000 GRAM зачислено.`, 'success');
-                  }
-                  setIsStarsOpen(false);
-                } else {
-                  showToast('Оплата отменена.', 'info');
-                }
-              });
-            } else {
-              // Если бэкенд-токен не настроен, выдаем бонус для теста без падения
-              if (rewardType === 'energy') {
-                setEnergy(maxEnergy);
-                showToast(`[Тест] Энергия восстановлена за ${stars} ⭐`, 'success');
-              } else {
-                const newScore = gameScore + 5000;
-                setGameScore(newScore);
-                localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-                showToast(`[Тест] +5,000 GRAM зачислено за ${stars} ⭐`, 'success');
-              }
-              setIsStarsOpen(false);
-            }
-          })
-          .catch(() => {
-            // Фолбэк при сетевой ошибке, чтобы приложение не ломалось
-            if (rewardType === 'energy') {
-              setEnergy(maxEnergy);
-              showToast(`Энергия восстановлена (Офлайн режим)`, 'success');
-            } else {
-              setGameScore((prev) => prev + 5000);
-              showToast(`+5,000 GRAM зачислено (Офлайн режим)`, 'success');
-            }
-            setIsStarsOpen(false);
-          });
-      } else {
-        // Режим тестирования в обычном браузере
-        if (rewardType === 'energy') {
-          setEnergy(maxEnergy);
-          showToast(`[Браузер] Энергия восстановлена за ${stars} ⭐`, 'success');
-        } else if (rewardType === 'boost') {
-          const newScore = gameScore + 5000;
-          setGameScore(newScore);
-          localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-          showToast(`[Браузер] +5,000 GRAM зачислено за ${stars} ⭐`, 'success');
-        }
-        setIsStarsOpen(false);
+    try {
+      const commentText = `SHOP_BUY | Item:${rewardType} | Price:${tonAmount}TON`;
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: FEE_RECIPIENT_ADDRESS,
+          amount: toNano(tonAmount.toString()).toString(),
+          payload: commentCell.toBoc().toString('base64'),
+        }],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+
+      if (rewardType === 'energy') {
+        setEnergy(maxEnergy);
+        showToast(`Успешно! Энергия полностью восстановлена ⚡`, 'success');
+      } else if (rewardType === 'boost') {
+        const newScore = gameScore + 5000;
+        setGameScore(newScore);
+        localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+        showToast(`Успешно! +5,000 GRAM зачислено 🚀`, 'success');
       }
+      setIsShopOpen(false);
+    } catch (err) {
+      showToast('Транзакция отменена.', 'error');
     }
   };
 
@@ -294,7 +255,7 @@ function MinterApp() {
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{
-          address: 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g',
+          address: FEE_RECIPIENT_ADDRESS,
           amount: toNano(isDeposit ? val.toString() : '0.1').toString(),
           payload: commentCell.toBoc().toString('base64'),
         }],
@@ -314,8 +275,6 @@ function MinterApp() {
       setUnstakeLoading(false);
     }
   };
-
-  const FEE_RECIPIENT_ADDRESS = 'UQAIOSFdlxtGH5SMRrFM216SFPj295rUDyQs6-gp_Ab_dm2g';
 
   const handleTabChange = (tab: typeof activeTab) => {
     if (tab === 'manage' && !userAddress) {
@@ -626,7 +585,7 @@ function MinterApp() {
               onUpgradeEnergyLimit={upgradeEnergyLimit}
               onOpenDaily={() => setIsDailyOpen(true)}
               onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-              onOpenStars={() => setIsStarsOpen(true)}
+              onOpenShop={() => setIsShopOpen(true)}
               onClaimFarm={handleClaimFarm}
             />
           )}
@@ -652,10 +611,10 @@ function MinterApp() {
         userId={tgUser.id}
       />
 
-      <TelegramStarsModal
-        isOpen={isStarsOpen}
-        onClose={() => setIsStarsOpen(false)}
-        onBuyItem={handleBuyTelegramStars}
+      <TonShopModal
+        isOpen={isShopOpen}
+        onClose={() => setIsShopOpen(false)}
+        onBuyItem={handleBuyItemWithTon}
       />
 
       <footer className="w-full max-w-md text-center pb-1 text-[9px] text-slate-500">
