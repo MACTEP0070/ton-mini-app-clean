@@ -43,7 +43,7 @@ export default function GameTab({
     <div className="space-y-3.5 text-center animate-fadeIn">
       <div className="glass-card p-4 rounded-3xl space-y-3.5 relative overflow-hidden">
         
-        {/* Фоновое неоновое свечение */}
+        {/* Фоновое свечение */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="flex items-center justify-between relative z-10">
@@ -87,9 +87,9 @@ export default function GameTab({
           </button>
         </div>
 
-        {/* Интерактивная монета с фиксированной областью */}
-        <div className="relative flex items-center justify-center py-4 select-none h-40 z-10">
-          {/* Плавающие цифры теперь строго absolute поверх всего, не двигая элементы */}
+        {/* Интерактивная монета с жестким контейнером без сдвигов */}
+        <div className="relative flex items-center justify-center py-2 select-none h-40 z-10">
+          {/* Плавающие цифры */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
             {floatingNumbers.map((item) => (
               <div
@@ -102,19 +102,22 @@ export default function GameTab({
             ))}
           </div>
 
-          <div
-            onClick={onCoinClick}
-            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/30 via-sky-500/20 to-blue-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.3)] cursor-pointer p-2.5 border-2 border-cyan-400/50 relative group ${
-              isTapped ? 'coin-press' : 'hover:scale-105 transition-transform duration-200'
-            }`}
-            style={{ transformOrigin: 'center center' }}
-          >
-            <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping pointer-events-none"></div>
-            <img 
-              src="https://cdn.dedust.io/images/jetton:0:d36c08089460188aaaf294bb1f5fcef54b1e99a5e70d28840ba36ed682d7e0ac.webp?v=1794238582" 
-              alt="GRAM Coin" 
-              className="w-28 h-28 object-contain rounded-full drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] select-none pointer-events-none"
-            />
+          {/* Обертка с абсолютным центрированием, чтобы клик и анимация сжатия происходили строго внутри фиксированной зоны */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              onClick={onCoinClick}
+              className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/30 via-sky-500/20 to-blue-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.3)] cursor-pointer p-2.5 border-2 border-cyan-400/50 relative group ${
+                isTapped ? 'coin-press' : 'hover:scale-105 transition-transform duration-200'
+              }`}
+              style={{ transformOrigin: 'center center' }}
+            >
+              <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping pointer-events-none"></div>
+              <img 
+                src="https://cdn.dedust.io/images/jetton:0:d36c08089460188aaaf294bb1f5fcef54b1e99a5e70d28840ba36ed682d7e0ac.webp?v=1794238582" 
+                alt="GRAM Coin" 
+                className="w-28 h-28 object-contain rounded-full drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] select-none pointer-events-none"
+              />
+            </div>
           </div>
         </div>
 
