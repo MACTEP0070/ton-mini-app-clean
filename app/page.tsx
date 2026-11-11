@@ -214,16 +214,51 @@ function MinterApp() {
   };
 
   const handleBuyTelegramStars = (stars: number, rewardType: 'energy' | 'boost') => {
-    if (rewardType === 'energy') {
-      setEnergy(maxEnergy);
-      showToast(`Успешно! Энергия полностью восстановлена за ${stars} ⭐`, 'success');
-    } else if (rewardType === 'boost') {
-      const newScore = gameScore + 5000;
-      setGameScore(newScore);
-      localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-      showToast(`Успешно! +5,000 GRAM зачислено за ${stars} ⭐`, 'success');
+    if (typeof window !== 'undefined') {
+      const tg = (window as any).Telegram?.WebApp;
+
+      if (tg && tg.openInvoice) {
+        fetch(`/api/create-invoice?stars=${stars}&type=${rewardType}&userId=${tgUser.id}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.invoiceLink) {
+              tg.openInvoice(data.invoiceLink, (status: string) => {
+                if (status === 'paid') {
+                  if (rewardType === 'energy') {
+                    setEnergy(maxEnergy);
+                    showToast(`Оплата ${stars} ⭐ успешна! Энергия восстановлена.`, 'success');
+                  } else if (rewardType === 'boost') {
+                    const newScore = gameScore + 5000;
+                    setGameScore(newScore);
+                    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+                    showToast(`Оплата ${stars} ⭐ успешна! +5,000 GRAM зачислено.`, 'success');
+                  }
+                  setIsStarsOpen(false);
+                } else {
+                  showToast('Оплата отменена.', 'info');
+                }
+              });
+            } else {
+              showToast(data.error || 'Ошибка создания счета', 'error');
+            }
+          })
+          .catch(() => {
+            showToast('Ошибка соединения с сервером', 'error');
+          });
+      } else {
+        // Тестовый режим в обычном браузере
+        if (rewardType === 'energy') {
+          setEnergy(maxEnergy);
+          showToast(`[Тест] Энергия восстановлена за ${stars} ⭐`, 'success');
+        } else if (rewardType === 'boost') {
+          const newScore = gameScore + 5000;
+          setGameScore(newScore);
+          localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+          showToast(`[Тест] +5,000 GRAM зачислено за ${stars} ⭐`, 'success');
+        }
+        setIsStarsOpen(false);
+      }
     }
-    setIsStarsOpen(false);
   };
 
   const handleStakeAction = async (isDeposit: boolean) => {
