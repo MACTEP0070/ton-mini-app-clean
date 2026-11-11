@@ -12,7 +12,7 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
   const tabs = [
     { id: 'create', label: '✨ Создать' },
     { id: 'manage', label: '🛠 Управлять' },
-    { id: 'presale', label: '🚀 Раздача' },
+    { id: 'presale', label: '📈 Инвест' }, // Изменили название вкладки
     { id: 'staking', label: '🔒 Стейк' },
     { id: 'game', label: '🎮 Игра' },
   ] as const;
