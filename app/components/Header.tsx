@@ -28,12 +28,12 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         </div>
       </div>
 
-      {/* Навигационные табы в стиле FightClub */}
-      <div className="grid grid-cols-5 gap-1 bg-[#0d121f]/80 p-1.5 rounded-2xl border border-white/5">
+      {/* Навигационные табы: Игра, Арена, Инвест, Стейк, Управление, Создать (шестым) */}
+      <div className="grid grid-cols-6 gap-1 bg-[#0d121f]/80 p-1.5 rounded-2xl border border-white/5">
         <button
           type="button"
           onClick={() => onTabChange('game')}
-          className={`py-2 rounded-xl text-[11px] font-extrabold transition-all ${
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
             activeTab === 'game'
               ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'text-slate-400 hover:text-white'
@@ -44,7 +44,7 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         <button
           type="button"
           onClick={() => onTabChange('arena')}
-          className={`py-2 rounded-xl text-[11px] font-extrabold transition-all ${
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
             activeTab === 'arena'
               ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'text-slate-400 hover:text-white'
@@ -55,7 +55,7 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         <button
           type="button"
           onClick={() => onTabChange('presale')}
-          className={`py-2 rounded-xl text-[11px] font-extrabold transition-all ${
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
             activeTab === 'presale'
               ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'text-slate-400 hover:text-white'
@@ -66,7 +66,7 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         <button
           type="button"
           onClick={() => onTabChange('staking')}
-          className={`py-2 rounded-xl text-[11px] font-extrabold transition-all ${
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
             activeTab === 'staking'
               ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'text-slate-400 hover:text-white'
@@ -76,14 +76,25 @@ export default function Header({ tgUser, activeTab, onTabChange }: HeaderProps) 
         </button>
         <button
           type="button"
+          onClick={() => onTabChange('manage')}
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
+            activeTab === 'manage'
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          ⚙️ Упр.
+        </button>
+        <button
+          type="button"
           onClick={() => onTabChange('create')}
-          className={`py-2 rounded-xl text-[11px] font-extrabold transition-all ${
+          className={`py-2 rounded-xl text-[10px] font-extrabold transition-all truncate px-1 ${
             activeTab === 'create'
               ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          🚀 Токен
+          🚀 Создать
         </button>
       </div>
     </header>
