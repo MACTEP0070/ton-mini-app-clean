@@ -15,6 +15,7 @@ import ManageTab from './components/ManageTab';
 import PresaleTab from './components/PresaleTab';
 import StakingTab from './components/StakingTab';
 import GameTab from './components/GameTab';
+import DailyRewardsModal from './components/DailyRewardsModal';
 
 interface Toast {
   id: number;
@@ -27,6 +28,7 @@ function MinterApp() {
   const userAddress = useTonAddress();
 
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'presale' | 'staking' | 'game'>('game');
+  const [isDailyOpen, setIsDailyOpen] = useState(false);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -533,11 +535,22 @@ function MinterApp() {
               onCoinClick={handleCoinClick}
               onUpgradeMultitap={upgradeMultitap}
               onUpgradeEnergyLimit={upgradeEnergyLimit}
+              onOpenDaily={() => setIsDailyOpen(true)}
             />
           )}
 
         </div>
       </main>
+
+      <DailyRewardsModal
+        isOpen={isDailyOpen}
+        onClose={() => setIsDailyOpen(false)}
+        userId={tgUser.id}
+        onClaimReward={(amt) => {
+          addGramTokens(amt);
+          showToast(`Вы получили ежедневный бонус +${amt} GRAM! 🎉`, 'success');
+        }}
+      />
 
       <footer className="w-full max-w-md text-center pb-1 text-[9px] text-slate-500">
         TON Market Launchpad • Secure Smart Contracts
