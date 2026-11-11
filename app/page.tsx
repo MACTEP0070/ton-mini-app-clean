@@ -90,6 +90,7 @@ function MinterApp() {
   // Стейкинг
   const [stakeInputAmount, setStakeInputAmount] = useState('100');
   const [stakedGramBalance, setStakedGramBalance] = useState<number>(0);
+  const [stakingStartTime, setStakingStartTime] = useState<number | null>(null);
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
@@ -111,19 +112,7 @@ function MinterApp() {
     { id: '2', title: 'Быстрый банк TON', prize: '10 TON', totalPot: 8.5, timeLeft: '01:45', myChance: 40 },
   ]);
 
-  const [timeLeft, setTimeLeft] = useState({ days: 6, hours: 23, minutes: 59, seconds: 59 });
-
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
-        return { days: 7, hours: 0, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-
     const gameEngine = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
       setFarmBalance((prev) => {
@@ -136,7 +125,6 @@ function MinterApp() {
     }, 1000);
 
     return () => {
-      clearInterval(timer);
       clearInterval(gameEngine);
     };
   }, [maxEnergy, tgUser.id]);
@@ -164,6 +152,9 @@ function MinterApp() {
 
       const savedStake = localStorage.getItem(`stake_${currentId}_GRAM`);
       if (savedStake) setStakedGramBalance(parseFloat(savedStake));
+
+      const savedStakeTime = localStorage.getItem(`stake_start_TIME_${currentId}`);
+      if (savedStakeTime) setStakingStartTime(parseInt(savedStakeTime, 10));
 
       const savedGameScore = localStorage.getItem(`game_score_${currentId}`);
       if (savedGameScore) setGameScore(parseFloat(savedGameScore));
@@ -315,11 +306,20 @@ function MinterApp() {
       };
 
       await tonConnectUI.sendTransaction(transaction);
-      setStakedGramBalance((prev) => {
-        const updated = isDeposit ? prev + val : Math.max(0, prev - val);
-        localStorage.setItem(`stake_${tgUser.id}_GRAM`, updated.toString());
-        return updated;
-      });
+      
+      const updatedStake = isDeposit ? stakedGramBalance + val : Math.max(0, stakedGramBalance - val);
+      setStakedGramBalance(updatedStake);
+      localStorage.setItem(`stake_${tgUser.id}_GRAM`, updatedStake.toString());
+
+      if (isDeposit) {
+        const now = Date.now();
+        setStakingStartTime(now);
+        localStorage.setItem(`stake_start_TIME_${tgUser.id}`, now.toString());
+      } else if (updatedStake === 0) {
+        setStakingStartTime(null);
+        localStorage.removeItem(`stake_start_TIME_${tgUser.id}`);
+      }
+
       showToast(isDeposit ? 'Успешно в стейкинге!' : 'Запрос на снятие отправлен!', 'success');
     } catch (err) {
       showToast('Отменено.', 'error');
@@ -611,12 +611,10 @@ function MinterApp() {
 
           {activeTab === 'staking' && (
             <StakingTab
-              timeLeft={timeLeft}
               stakedGramBalance={stakedGramBalance}
               stakeInputAmount={stakeInputAmount}
               setStakeInputAmount={setStakeInputAmount}
-              weeklyReward={((parseFloat(stakeInputAmount || '0') * 0.30) / 52).toFixed(2)}
-              yearlyReward={(parseFloat(stakeInputAmount || '0') * 0.30).toFixed(2)}
+              stakingStartTime={stakingStartTime}
               stakingLoading={stakingLoading}
               unstakeLoading={unstakeLoading}
               userAddress={userAddress}
