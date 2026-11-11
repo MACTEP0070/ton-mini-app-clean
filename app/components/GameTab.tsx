@@ -40,51 +40,59 @@ export default function GameTab({
   onClaimFarm,
 }: GameTabProps) {
   return (
-    <div className="space-y-3 text-center animate-fadeIn">
-      <div className="bg-[#070b14]/70 p-3.5 rounded-2xl border border-cyan-500/30 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase text-cyan-400">🎮 GRAM Clicker</span>
-          <span className="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded-full font-bold font-mono">⚡ {tapPower} тап</span>
+    <div className="space-y-3.5 text-center animate-fadeIn">
+      <div className="bg-gradient-to-b from-[#111726]/90 to-[#070b14]/95 p-4 rounded-3xl border border-cyan-500/30 shadow-2xl space-y-3.5 backdrop-blur-xl relative overflow-hidden">
+        
+        {/* Фоновое неоновое свечение */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="flex items-center justify-between relative z-10">
+          <span className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+            <span>⚡</span> GRAM Clicker
+          </span>
+          <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full font-extrabold font-mono border border-cyan-500/30">
+            +{tapPower} за тап
+          </span>
         </div>
 
-        <div>
-          <div className="text-[10px] text-slate-400 uppercase">Игровой баланс</div>
-          <div className="text-2xl font-black font-mono text-white mt-0.5">
-            {gameScore.toLocaleString()} <span className="text-cyan-400 text-xs">GRAM</span>
+        <div className="relative z-10">
+          <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Игровой баланс</div>
+          <div className="text-3xl font-black font-mono text-white mt-1 tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+            {gameScore.toLocaleString()} <span className="text-cyan-400 text-sm">GRAM</span>
           </div>
         </div>
 
-        {/* Кнопки бонусов, лидеров и звезд ТОЛЬКО на вкладке игры */}
-        <div className="grid grid-cols-3 gap-1.5">
+        {/* Премиальные кнопки быстрого доступа */}
+        <div className="grid grid-cols-3 gap-2 relative z-10">
           <button
             type="button"
             onClick={onOpenDaily}
-            className="py-2 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-[10px] rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+            className="py-2.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-[11px] rounded-2xl shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:bg-emerald-500/30"
           >
-            <span>🎁 Бонус</span>
+            <span>🎁</span> Бонус
           </button>
           <button
             type="button"
             onClick={onOpenLeaderboard}
-            className="py-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-[10px] rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+            className="py-2.5 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/40 text-yellow-300 font-extrabold text-[11px] rounded-2xl shadow-lg shadow-yellow-500/10 flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:bg-yellow-500/30"
           >
-            <span>🏆 Топ</span>
+            <span>🏆</span> Топ
           </button>
           <button
             type="button"
             onClick={onOpenStars}
-            className="py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-300 font-bold text-[10px] rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+            className="py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-[11px] rounded-2xl shadow-lg shadow-amber-500/10 flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:bg-amber-500/30"
           >
-            <span>⭐ Stars</span>
+            <span>⭐</span> Stars
           </button>
         </div>
 
-        {/* Монета кликера */}
-        <div className="relative flex items-center justify-center py-4 select-none h-40">
+        {/* Интерактивная монета с неоновым ореолом */}
+        <div className="relative flex items-center justify-center py-6 select-none h-44 z-10">
           {floatingNumbers.map((item) => (
             <div
               key={item.id}
-              className="absolute text-cyan-300 font-black text-base font-mono pointer-events-none animate-floatUp z-20"
+              className="absolute text-cyan-300 font-black text-lg font-mono pointer-events-none animate-floatUp z-30 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
               style={{ left: `${item.x}px`, top: `${item.y}px` }}
             >
               +{item.val}
@@ -93,64 +101,71 @@ export default function GameTab({
 
           <div
             onClick={onCoinClick}
-            className={`w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-500/20 via-sky-500/20 to-blue-600/20 flex items-center justify-center shadow-2xl shadow-cyan-500/40 cursor-pointer transition-transform duration-75 p-2 border-2 border-cyan-500/40 relative group ${
-              isTapped ? 'scale-90' : 'scale-100 hover:scale-105'
+            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/30 via-sky-500/20 to-blue-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.3)] cursor-pointer transition-transform duration-100 p-2.5 border-2 border-cyan-400/50 relative group active:scale-90 ${
+              isTapped ? 'scale-95' : 'hover:scale-105'
             }`}
           >
+            <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping pointer-events-none"></div>
             <img 
               src="https://cdn.dedust.io/images/jetton:0:d36c08089460188aaaf294bb1f5fcef54b1e99a5e70d28840ba36ed682d7e0ac.webp?v=1794238582" 
               alt="GRAM Coin" 
-              className="w-24 h-24 object-contain rounded-full drop-shadow-2xl select-none pointer-events-none"
+              className="w-28 h-28 object-contain rounded-full drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] select-none pointer-events-none"
             />
           </div>
         </div>
 
-        {/* Шкала энергии */}
-        <div className="space-y-1 text-left">
-          <div className="flex justify-between text-[11px] font-mono">
-            <span className="text-slate-300">⚡ Энергия</span>
+        {/* Шкала энергии со свечением */}
+        <div className="space-y-1.5 text-left relative z-10">
+          <div className="flex justify-between text-[11px] font-mono font-bold">
+            <span className="text-slate-300 flex items-center gap-1"><span>⚡</span> Энергия</span>
             <span className="text-cyan-400">{energy} / {maxEnergy}</span>
           </div>
-          <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-white/10">
-            <div className="bg-gradient-to-r from-cyan-500 to-sky-400 h-full transition-all duration-300" style={{ width: `${(energy / maxEnergy) * 100}%` }}></div>
+          <div className="w-full bg-slate-950/80 h-3 rounded-full overflow-hidden border border-cyan-500/20 p-0.5 shadow-inner">
+            <div 
+              className="bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(6,182,212,0.5)]" 
+              style={{ width: `${(energy / maxEnergy) * 100}%` }}
+            ></div>
           </div>
         </div>
 
         {/* Блок авто-фарма */}
-        <AutofarmSection farmBalance={farmBalance} onClaimFarm={onClaimFarm} />
+        <div className="relative z-10">
+          <AutofarmSection farmBalance={farmBalance} onClaimFarm={onClaimFarm} />
+        </div>
 
-        {/* Бустеры */}
-        <div className="pt-2 border-t border-white/10 space-y-2 text-left">
-          <div className="text-[11px] font-bold text-cyan-400 uppercase">🛠 Улучшения:</div>
+        {/* Блок улучшений в стиле стекломорфизма */}
+        <div className="pt-2 border-t border-white/10 space-y-2 text-left relative z-10">
+          <div className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">🛠 Улучшения тапа и энергии:</div>
           
-          <div className="bg-[#0b101d] p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+          <div className="bg-[#070b14]/80 p-3 rounded-2xl border border-white/10 flex items-center justify-between shadow-md">
             <div>
-              <div className="text-xs font-bold text-white">⚡ Multitap (Ур. {multitapLevel})</div>
-              <div className="text-[9px] text-cyan-400">Цена: {(multitapLevel * 200).toLocaleString()} GRAM</div>
+              <div className="text-xs font-bold text-white flex items-center gap-1"><span>⚡</span> Multitap <span className="text-cyan-400 font-mono text-[10px]">(Ур. {multitapLevel})</span></div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">Цена: <strong className="text-cyan-300">{(multitapLevel * 200).toLocaleString()} GRAM</strong></div>
             </div>
             <button
               type="button"
               onClick={onUpgradeMultitap}
-              className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-lg active:scale-95"
+              className="px-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg active:scale-95 transition-all hover:brightness-110"
             >
-              Качнуть
+              Улучшить
             </button>
           </div>
 
-          <div className="bg-[#0b101d] p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+          <div className="bg-[#070b14]/80 p-3 rounded-2xl border border-white/10 flex items-center justify-between shadow-md">
             <div>
-              <div className="text-xs font-bold text-white">🔋 Energy Limit (Ур. {energyLimitLevel})</div>
-              <div className="text-[9px] text-cyan-400">Цена: {(energyLimitLevel * 300).toLocaleString()} GRAM</div>
+              <div className="text-xs font-bold text-white flex items-center gap-1"><span>🔋</span> Energy Limit <span className="text-cyan-400 font-mono text-[10px]">(Ур. {energyLimitLevel})</span></div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">Цена: <strong className="text-cyan-300">{(energyLimitLevel * 300).toLocaleString()} GRAM</strong></div>
             </div>
             <button
               type="button"
               onClick={onUpgradeEnergyLimit}
-              className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs rounded-lg active:scale-95"
+              className="px-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg active:scale-95 transition-all hover:brightness-110"
             >
-              Качнуть
+              Улучшить
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
