@@ -83,7 +83,6 @@ function MinterApp() {
   const [totalRaised, setTotalRaised] = useState(68203);
   const HARD_CAP = 100000;
 
-  const [userGramBalance, setUserGramBalance] = useState<number>(0);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   // Стейкинг
@@ -93,9 +92,11 @@ function MinterApp() {
   const [stakingLoading, setStakingLoading] = useState(false);
   const [unstakeLoading, setUnstakeLoading] = useState(false);
 
-  // Игра и Новая экономика (Авто-майнер, Криты)
+  // Единый баланс GRAM для кликера и вывода
   const [gameScore, setGameScore] = useState<number>(0);
   const [farmBalance, setFarmBalance] = useState<number>(0);
+  const [autofarmExpiresAt, setAutofarmExpiresAt] = useState<number | null>(null);
+
   const [energy, setEnergy] = useState<number>(1000);
   const [maxEnergy, setMaxEnergy] = useState<number>(1000);
   const [tapPower, setTapPower] = useState<number>(1);
@@ -105,11 +106,12 @@ function MinterApp() {
   const [critChanceLevel, setCritChanceLevel] = useState<number>(0);
   const [floatingNumbers, setFloatingNumbers] = useState<{ id: number; x: number; y: number; val: number; isCrit?: boolean }[]>([]);
 
+  // Главный двигатель экономики
   useEffect(() => {
     const gameEngine = setInterval(() => {
       setEnergy((prev) => Math.min(maxEnergy, prev + 3));
       
-      // Авто-майнер пассивный доход каждую секунду
+      // Авто-майнер пополняет единый баланс
       const autoIncome = autoMinerLevel * 1.5;
       if (autoIncome > 0) {
         setGameScore((prev) => {
@@ -121,19 +123,20 @@ function MinterApp() {
         });
       }
 
-      setFarmBalance((prev) => {
-        const updated = prev + 0.5;
-        if (tgUser.id) {
-          localStorage.setItem(`farm_balance_${tgUser.id}`, updated.toString());
-        }
-        return updated;
-      });
+      // Начисление автофарма при активной подписке (30 дней)
+      if (autofarmExpiresAt && Date.now() < autofarmExpiresAt) {
+        setFarmBalance((prev) => {
+          const updated = prev + 0.5;
+          if (tgUser.id) {
+            localStorage.setItem(`farm_balance_${tgUser.id}`, updated.toString());
+          }
+          return updated;
+        });
+      }
     }, 1000);
 
-    return () => {
-      clearInterval(gameEngine);
-    };
-  }, [maxEnergy, autoMinerLevel, tgUser.id]);
+    return () => clearInterval(gameEngine);
+  }, [maxEnergy, autoMinerLevel, autofarmExpiresAt, tgUser.id]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -153,20 +156,20 @@ function MinterApp() {
         setTgUser({ id: currentId, name: 'Web User' });
       }
 
-      const savedBalance = localStorage.getItem(`gram_balance_${currentId}`);
-      if (savedBalance) setUserGramBalance(parseFloat(savedBalance));
+      const savedGameScore = localStorage.getItem(`game_score_${currentId}`);
+      if (savedGameScore) setGameScore(parseFloat(savedGameScore));
+
+      const savedFarm = localStorage.getItem(`farm_balance_${currentId}`);
+      if (savedFarm) setFarmBalance(parseFloat(savedFarm));
+
+      const savedAutofarmExp = localStorage.getItem(`autofarm_exp_${currentId}`);
+      if (savedAutofarmExp) setAutofarmExpiresAt(parseInt(savedAutofarmExp, 10));
 
       const savedStake = localStorage.getItem(`stake_${currentId}_GRAM`);
       if (savedStake) setStakedGramBalance(parseFloat(savedStake));
 
       const savedStakeTime = localStorage.getItem(`stake_start_TIME_${currentId}`);
       if (savedStakeTime) setStakingStartTime(parseInt(savedStakeTime, 10));
-
-      const savedGameScore = localStorage.getItem(`game_score_${currentId}`);
-      if (savedGameScore) setGameScore(parseFloat(savedGameScore));
-
-      const savedFarm = localStorage.getItem(`farm_balance_${currentId}`);
-      if (savedFarm) setFarmBalance(parseFloat(savedFarm));
 
       const savedMultitap = localStorage.getItem(`game_multitap_${currentId}`);
       if (savedMultitap) {
@@ -195,9 +198,9 @@ function MinterApp() {
   }, [userAddress]);
 
   const addGramTokens = (amountToAdd: number) => {
-    setUserGramBalance((prev) => {
+    setGameScore((prev) => {
       const newBalance = prev + amountToAdd;
-      localStorage.setItem(`gram_balance_${tgUser.id}`, newBalance.toString());
+      localStorage.setItem(`game_score_${tgUser.id}`, newBalance.toString());
       return newBalance;
     });
   };
@@ -205,19 +208,92 @@ function MinterApp() {
   const handleClaimFarm = () => {
     if (farmBalance < 1) return;
     const earned = Math.floor(farmBalance);
-    const newScore = gameScore + earned;
-    setGameScore(newScore);
+    addGramTokens(earned);
     setFarmBalance(0);
-    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
     localStorage.setItem(`farm_balance_${tgUser.id}`, '0');
-    showToast(`Собрано с шахты: +${earned} GRAM! ⛏️`, 'success');
+    showToast(`Собрано с автофарма: +${earned} GRAM! ⛏️`, 'success');
+  };
+
+  // Покупка Автофарма на 30 дней за 10 TON
+  const handleBuyAutofarm = async () => {
+    if (!userAddress) { showToast('Подключите кошелек TON!', 'error'); return; }
+
+    try {
+      const commentText = `AUTOFARM_30_DAYS | User:${tgUser.id}`;
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: FEE_RECIPIENT_ADDRESS,
+          amount: toNano('10').toString(),
+          payload: commentCell.toBoc().toString('base64'),
+        }],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+
+      const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+      setAutofarmExpiresAt(expiresAt);
+      localStorage.setItem(`autofarm_exp_${tgUser.id}`, expiresAt.toString());
+
+      showToast('Автофарм активирован на 30 дней! ⛏️🚀', 'success');
+    } catch (err) {
+      showToast('Оплата отменена.', 'error');
+    }
+  };
+
+  // Покупка улучшений за TON
+  const handlePayUpgradeInTon = async (tonCost: number, upgradeType: 'multitap' | 'energy' | 'autominer' | 'crit') => {
+    if (!userAddress) { showToast('Подключите кошелек TON!', 'error'); return; }
+
+    try {
+      const commentText = `UPGRADE_${upgradeType.toUpperCase()} | Price:${tonCost}TON | User:${tgUser.id}`;
+      const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: FEE_RECIPIENT_ADDRESS,
+          amount: toNano(tonCost.toString()).toString(),
+          payload: commentCell.toBoc().toString('base64'),
+        }],
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+
+      if (upgradeType === 'multitap') {
+        const newLvl = multitapLevel + 1;
+        setMultitapLevel(newLvl);
+        setTapPower(newLvl);
+        localStorage.setItem(`game_multitap_${tgUser.id}`, newLvl.toString());
+        showToast(`Multitap повышен до ур. ${newLvl}! ⚡`, 'success');
+      } else if (upgradeType === 'energy') {
+        const newLvl = energyLimitLevel + 1;
+        setEnergyLimitLevel(newLvl);
+        const newMax = 1000 + (newLvl - 1) * 500;
+        setMaxEnergy(newMax);
+        setEnergy(newMax);
+        localStorage.setItem(`game_energylimit_${tgUser.id}`, newLvl.toString());
+        showToast(`Energy Limit повышен до ур. ${newLvl}! 🔋`, 'success');
+      } else if (upgradeType === 'autominer') {
+        const newLvl = autoMinerLevel + 1;
+        setAutoMinerLevel(newLvl);
+        localStorage.setItem(`game_autominer_${tgUser.id}`, newLvl.toString());
+        showToast(`Auto-Miner повышен до ур. ${newLvl}! 🤖`, 'success');
+      } else if (upgradeType === 'crit') {
+        const newLvl = critChanceLevel + 1;
+        setCritChanceLevel(newLvl);
+        localStorage.setItem(`game_crit_${tgUser.id}`, newLvl.toString());
+        showToast(`Lucky Crit повышен до ур. ${newLvl}! 🔥`, 'success');
+      }
+    } catch (err) {
+      showToast('Оплата отменена.', 'error');
+    }
   };
 
   const handleBuyItemWithTon = async (tonAmount: number, rewardType: 'energy' | 'boost') => {
-    if (!userAddress) {
-      showToast('Подключите кошелек для покупки!', 'error');
-      return;
-    }
+    if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
 
     try {
       const commentText = `SHOP_BUY | Item:${rewardType} | Price:${tonAmount}TON`;
@@ -238,9 +314,7 @@ function MinterApp() {
         setEnergy(maxEnergy);
         showToast(`Успешно! Энергия полностью восстановлена ⚡`, 'success');
       } else if (rewardType === 'boost') {
-        const newScore = gameScore + 5000;
-        setGameScore(newScore);
-        localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+        addGramTokens(5000);
         showToast(`Успешно! +5,000 GRAM зачислено 🚀`, 'success');
       }
       setIsShopOpen(false);
@@ -312,15 +386,12 @@ function MinterApp() {
     const x = e.clientX - containerRect.left;
     const y = e.clientY - containerRect.top;
 
-    // Шанс критического удара (каждый уровень дает +2% шанса выбить x5)
     const critChance = critChanceLevel * 2;
     const isCrit = Math.random() * 100 < critChance;
     const earnedVal = isCrit ? tapPower * 5 : tapPower;
 
     setEnergy((prev) => Math.max(0, prev - tapPower));
-    const newScore = gameScore + earnedVal;
-    setGameScore(newScore);
-    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
+    addGramTokens(earnedVal);
 
     const newId = Date.now() + Math.random();
     setFloatingNumbers((prev) => [...prev, { id: newId, x, y, val: earnedVal, isCrit }]);
@@ -335,70 +406,6 @@ function MinterApp() {
     }
   };
 
-  const upgradeMultitap = () => {
-    const cost = multitapLevel * 200;
-    if (gameScore < cost) {
-      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
-      return;
-    }
-    const newScore = gameScore - cost;
-    const newLvl = multitapLevel + 1;
-    setGameScore(newScore);
-    setMultitapLevel(newLvl);
-    setTapPower(newLvl);
-    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-    localStorage.setItem(`game_multitap_${tgUser.id}`, newLvl.toString());
-    showToast(`Multitap повышен до ур. ${newLvl}! ⚡`, 'success');
-  };
-
-  const upgradeEnergyLimit = () => {
-    const cost = energyLimitLevel * 300;
-    if (gameScore < cost) {
-      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
-      return;
-    }
-    const newScore = gameScore - cost;
-    const newLvl = energyLimitLevel + 1;
-    setGameScore(newScore);
-    setEnergyLimitLevel(newLvl);
-    const newMaxEnergy = 1000 + (newLvl - 1) * 500;
-    setMaxEnergy(newMaxEnergy);
-    setEnergy(newMaxEnergy);
-    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-    localStorage.setItem(`game_energylimit_${tgUser.id}`, newLvl.toString());
-    showToast(`Энергия повышена до ур. ${newLvl}! 🔋`, 'success');
-  };
-
-  const upgradeAutoMiner = () => {
-    const cost = (autoMinerLevel + 1) * 500;
-    if (gameScore < cost) {
-      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
-      return;
-    }
-    const newScore = gameScore - cost;
-    const newLvl = autoMinerLevel + 1;
-    setGameScore(newScore);
-    setAutoMinerLevel(newLvl);
-    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-    localStorage.setItem(`game_autominer_${tgUser.id}`, newLvl.toString());
-    showToast(`Авто-майнер улучшен до ур. ${newLvl}! 🤖`, 'success');
-  };
-
-  const upgradeCritChance = () => {
-    const cost = (critChanceLevel + 1) * 400;
-    if (gameScore < cost) {
-      showToast(`Нужно еще ${(cost - gameScore).toLocaleString()} монет!`, 'error');
-      return;
-    }
-    const newScore = gameScore - cost;
-    const newLvl = critChanceLevel + 1;
-    setGameScore(newScore);
-    setCritChanceLevel(newLvl);
-    localStorage.setItem(`game_score_${tgUser.id}`, newScore.toString());
-    localStorage.setItem(`game_crit_${tgUser.id}`, newLvl.toString());
-    showToast(`Lucky Crit повышен до ур. ${newLvl}! 🔥`, 'success');
-  };
-
   const handleCheckSubscription = () => {
     window.open('https://t.me/bunker_zona', '_blank');
     setTimeout(() => {
@@ -406,7 +413,7 @@ function MinterApp() {
         setIsSubscribed(true);
         localStorage.setItem(`subscribed_${tgUser.id}`, 'true');
         addGramTokens(100);
-        showToast('Спасибо за подписку! +100 GRAM-START 🎉', 'success');
+        showToast('Спасибо за подписку! +100 GRAM 🎉', 'success');
       } else {
         showToast('Бонус уже получен!', 'info');
       }
@@ -454,7 +461,7 @@ function MinterApp() {
 
       await tonConnectUI.sendTransaction(transaction);
       addGramTokens(100);
-      showToast('Заявка отправлена! +100 GRAM-START 🎉', 'success');
+      showToast('Заявка отправлена! +100 GRAM 🎉', 'success');
     } catch (err: any) {
       showToast('Транзакция отменена.', 'error');
     } finally {
@@ -514,12 +521,12 @@ function MinterApp() {
   const handleWithdrawTokens = async () => {
     if (!userAddress) { showToast('Подключите кошелек!', 'error'); return; }
     const amountToWithdraw = parseFloat(withdrawInputAmount);
-    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) { showToast('Минимум 100,000 GRAM-START', 'error'); return; }
-    if (amountToWithdraw > userGramBalance) { showToast('Превышен баланс', 'error'); return; }
+    if (isNaN(amountToWithdraw) || amountToWithdraw < 100000) { showToast('Минимум 100,000 GRAM', 'error'); return; }
+    if (amountToWithdraw > gameScore) { showToast('Недостаточно намайненных GRAM', 'error'); return; }
 
     setWithdrawing(true);
     try {
-      const commentText = `Вывод: ${amountToWithdraw} | Wallet:${userAddress}`;
+      const commentText = `WITHDRAW_GRAM | Amount:${amountToWithdraw} | Wallet:${userAddress}`;
       const commentCell = beginCell().storeUint(0, 32).storeStringTail(commentText).endCell();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
@@ -527,10 +534,12 @@ function MinterApp() {
       };
 
       await tonConnectUI.sendTransaction(transaction);
-      const newBal = userGramBalance - amountToWithdraw;
-      setUserGramBalance(newBal);
-      localStorage.setItem(`gram_balance_${tgUser.id}`, newBal.toString());
-      showToast('Запрос на вывод отправлен!', 'success');
+      
+      const newBal = gameScore - amountToWithdraw;
+      setGameScore(newBal);
+      localStorage.setItem(`game_score_${tgUser.id}`, newBal.toString());
+      
+      showToast('Запрос на вывод GRAM отправлен!', 'success');
     } catch (err) {
       showToast('Отменено.', 'error');
     } finally {
@@ -569,21 +578,23 @@ function MinterApp() {
               critChanceLevel={critChanceLevel}
               floatingNumbers={floatingNumbers}
               farmBalance={farmBalance}
+              autofarmExpiresAt={autofarmExpiresAt}
               onCoinClick={handleCoinClick}
-              onUpgradeMultitap={upgradeMultitap}
-              onUpgradeEnergyLimit={upgradeEnergyLimit}
-              onUpgradeAutoMiner={upgradeAutoMiner}
-              onUpgradeCritChance={upgradeCritChance}
+              onUpgradeMultitap={() => handlePayUpgradeInTon(0.1 * multitapLevel, 'multitap')}
+              onUpgradeEnergyLimit={() => handlePayUpgradeInTon(0.1 * energyLimitLevel, 'energy')}
+              onUpgradeAutoMiner={() => handlePayUpgradeInTon(0.2 * (autoMinerLevel + 1), 'autominer')}
+              onUpgradeCritChance={() => handlePayUpgradeInTon(0.15 * (critChanceLevel + 1), 'crit')}
               onOpenDaily={() => setIsDailyOpen(true)}
               onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
               onOpenShop={() => setIsShopOpen(true)}
               onClaimFarm={handleClaimFarm}
+              onBuyAutofarm={handleBuyAutofarm}
             />
           )}
 
           {activeTab === 'presale' && (
             <InvestTab
-              userGramBalance={userGramBalance}
+              userGramBalance={gameScore}
               withdrawInputAmount={withdrawInputAmount}
               setWithdrawInputAmount={setWithdrawInputAmount}
               withdrawing={withdrawing}
