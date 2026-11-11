@@ -105,7 +105,7 @@ function MinterApp() {
   const [isTapped, setIsTapped] = useState<boolean>(false);
 
   // Арена (PvP / Ставки TON)
-  const [userTonBalance, setUserTonBalance] = useState<number>(12.5); // Баланс арены в TON
+  const [userTonBalance, setUserTonBalance] = useState<number>(12.5);
   const [activeBattles, setActiveBattles] = useState([
     { id: '1', title: 'Эксклюзивный NFT-подарок Snoop Dog', prize: 'Telegram Gift #77', totalPot: 15.0, timeLeft: '04:12', myChance: 25 },
     { id: '2', title: 'Быстрый банк TON', prize: '10 TON', totalPot: 8.5, timeLeft: '01:45', myChance: 40 },
@@ -210,7 +210,6 @@ function MinterApp() {
     showToast(`Собрано с шахты: +${earned} GRAM! ⛏️`, 'success');
   };
 
-  // Пополнение баланса Арены / Покупка за TON
   const handleTopUpTon = async (tonAmount: number) => {
     if (!userAddress) {
       showToast('Подключите кошелек TON!', 'error');
@@ -238,7 +237,6 @@ function MinterApp() {
     }
   };
 
-  // Участие в Арене
   const handleJoinBattle = (battleId: string, betAmount: number) => {
     if (userTonBalance < betAmount) {
       showToast('Недостаточно TON на балансе арены!', 'error');
@@ -332,7 +330,7 @@ function MinterApp() {
   };
 
   const handleTabChange = (tab: typeof activeTab) => {
-    if ((tab === 'manage' || tab === 'arena') && !userAddress) {
+    if ((tab === 'manage' || tab === 'arena' || tab === 'create') && !userAddress) {
       showToast('Сначала подключите кошелек TON!', 'error');
       return;
     }
@@ -560,31 +558,33 @@ function MinterApp() {
       <main className="w-full max-w-md my-1 flex-1 pb-4">
         <div className="bg-[#0d121f]/95 border border-white/[0.08] rounded-[2.5rem] p-4 shadow-2xl space-y-3.5 backdrop-blur-2xl">
           
-          {activeTab === 'create' && (
-            <CreateTab
-              name={name} setName={setName}
-              symbol={symbol} setSymbol={setSymbol}
-              description={description} setDescription={setDescription}
-              imageUri={imageUri} setImageUri={setImageUri}
-              amount={amount} setAmount={setAmount}
-              decimals={decimals} setDecimals={setDecimals}
-              addLiquidity={addLiquidity} setAddLiquidity={setAddLiquidity}
-              liquidityAmount={liquidityAmount} setLiquidityAmount={setLiquidityAmount}
-              loading={loading}
-              totalDisplayCost={totalDisplayCost}
-              onMint={handleMint}
+          {activeTab === 'game' && (
+            <GameTab
+              gameScore={gameScore}
+              tapPower={tapPower}
+              energy={energy}
+              maxEnergy={maxEnergy}
+              multitapLevel={multitapLevel}
+              energyLimitLevel={energyLimitLevel}
+              floatingNumbers={floatingNumbers}
+              isTapped={isTapped}
+              farmBalance={farmBalance}
+              onCoinClick={handleCoinClick}
+              onUpgradeMultitap={upgradeMultitap}
+              onUpgradeEnergyLimit={upgradeEnergyLimit}
+              onOpenDaily={() => setIsDailyOpen(true)}
+              onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+              onOpenShop={() => setIsShopOpen(true)}
+              onClaimFarm={handleClaimFarm}
             />
           )}
 
-          {activeTab === 'manage' && (
-            <ManageTab
-              manageTokenAddress={manageTokenAddress}
-              setManageTokenAddress={setManageTokenAddress}
-              actionAmount={actionAmount}
-              setActionAmount={setActionAmount}
-              loading={loading}
-              onCheckTokenOwnership={checkTokenOwnership}
-              onAction={handleAction}
+          {activeTab === 'arena' && (
+            <ArenaTab
+              userTonBalance={userTonBalance}
+              onTopUpTon={handleTopUpTon}
+              activeBattles={activeBattles}
+              onJoinBattle={handleJoinBattle}
             />
           )}
 
@@ -624,33 +624,31 @@ function MinterApp() {
             />
           )}
 
-          {activeTab === 'game' && (
-            <GameTab
-              gameScore={gameScore}
-              tapPower={tapPower}
-              energy={energy}
-              maxEnergy={maxEnergy}
-              multitapLevel={multitapLevel}
-              energyLimitLevel={energyLimitLevel}
-              floatingNumbers={floatingNumbers}
-              isTapped={isTapped}
-              farmBalance={farmBalance}
-              onCoinClick={handleCoinClick}
-              onUpgradeMultitap={upgradeMultitap}
-              onUpgradeEnergyLimit={upgradeEnergyLimit}
-              onOpenDaily={() => setIsDailyOpen(true)}
-              onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-              onOpenShop={() => setIsShopOpen(true)}
-              onClaimFarm={handleClaimFarm}
+          {activeTab === 'manage' && (
+            <ManageTab
+              manageTokenAddress={manageTokenAddress}
+              setManageTokenAddress={setManageTokenAddress}
+              actionAmount={actionAmount}
+              setActionAmount={setActionAmount}
+              loading={loading}
+              onCheckTokenOwnership={checkTokenOwnership}
+              onAction={handleAction}
             />
           )}
 
-          {activeTab === 'arena' && (
-            <ArenaTab
-              userTonBalance={userTonBalance}
-              onTopUpTon={handleTopUpTon}
-              activeBattles={activeBattles}
-              onJoinBattle={handleJoinBattle}
+          {activeTab === 'create' && (
+            <CreateTab
+              name={name} setName={setName}
+              symbol={symbol} setSymbol={setSymbol}
+              description={description} setDescription={setDescription}
+              imageUri={imageUri} setImageUri={setImageUri}
+              amount={amount} setAmount={setAmount}
+              decimals={decimals} setDecimals={setDecimals}
+              addLiquidity={addLiquidity} setAddLiquidity={setAddLiquidity}
+              liquidityAmount={liquidityAmount} setLiquidityAmount={setLiquidityAmount}
+              loading={loading}
+              totalDisplayCost={totalDisplayCost}
+              onMint={handleMint}
             />
           )}
 
