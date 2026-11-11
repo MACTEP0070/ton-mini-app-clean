@@ -9,7 +9,7 @@ interface StakingTabProps {
   yearlyReward: string;
   stakingLoading: boolean;
   unstakeLoading: boolean;
-  userAddress: string;
+  userAddress: string | null;
   onStakeAction: (isDeposit: boolean) => void;
 }
 
@@ -26,60 +26,91 @@ export default function StakingTab({
   onStakeAction,
 }: StakingTabProps) {
   return (
-    <div className="space-y-3 animate-fadeIn">
-      <div className="bg-[#070b14]/70 p-4 rounded-2xl border border-cyan-500/30 space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-bold uppercase text-cyan-400">🔒 Стейкинг GRAM (30% APY)</span>
+    <div className="space-y-4 animate-fadeIn text-left">
+      <div className="glass-card p-4 rounded-3xl space-y-4 relative overflow-hidden">
+        
+        {/* Фоновое свечение */}
+        <div className="absolute top-0 right-0 w-36 h-36 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div>
+          <h2 className="text-sm font-black uppercase text-cyan-400 tracking-wider flex items-center gap-1.5">
+            <span>🔒</span> GRAM Стейкинг
+          </h2>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Замораживайте токены под фиксированные 30% годовых (APY).
+          </p>
         </div>
 
-        <div className="bg-[#0b101d] p-2.5 rounded-xl border border-cyan-500/20 text-xs flex justify-between">
-          <span className="text-slate-400">До наград:</span>
-          <span className="font-mono text-cyan-400 font-bold">{timeLeft.days}д {timeLeft.hours}ч {timeLeft.minutes}м</span>
-        </div>
-
-        <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 p-3 rounded-xl border border-cyan-500/30">
-          <div className="text-[10px] text-cyan-300 uppercase">В стейкинге:</div>
-          <div className="text-lg font-black font-mono text-white">{stakedGramBalance.toLocaleString()} GRAM</div>
-        </div>
-
-        <input
-          type="number"
-          min="1"
-          value={stakeInputAmount}
-          onChange={(e) => setStakeInputAmount(e.target.value)}
-          className="w-full bg-[#0b101d] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
-        />
-
-        <div className="bg-[#0b101d] p-3 rounded-xl border border-white/10 text-xs space-y-1 font-mono">
-          <div className="text-[11px] font-bold text-cyan-400">📈 Прогноз доходности:</div>
-          <div className="flex justify-between text-slate-400">
-            <span>За 1 неделю:</span>
-            <span className="text-emerald-400 font-bold">+{weeklyReward} GRAM</span>
+        {/* Таймер события */}
+        <div className="bg-[#070b14]/70 p-3 rounded-2xl border border-cyan-500/20 flex items-center justify-around text-center font-mono">
+          <div>
+            <div className="text-base font-black text-cyan-400">{timeLeft.days}</div>
+            <div className="text-[9px] text-slate-400 uppercase">Дней</div>
           </div>
-          <div className="flex justify-between text-slate-400">
-            <span>За 1 год:</span>
-            <span className="text-emerald-400 font-bold">+{yearlyReward} GRAM</span>
+          <span className="text-cyan-500 font-bold">:</span>
+          <div>
+            <div className="text-base font-black text-cyan-400">{timeLeft.hours}</div>
+            <div className="text-[9px] text-slate-400 uppercase">Часов</div>
+          </div>
+          <span className="text-cyan-500 font-bold">:</span>
+          <div>
+            <div className="text-base font-black text-cyan-400">{timeLeft.minutes}</div>
+            <div className="text-[9px] text-slate-400 uppercase">Мин</div>
+          </div>
+          <span className="text-cyan-500 font-bold">:</span>
+          <div>
+            <div className="text-base font-black text-cyan-400">{timeLeft.seconds}</div>
+            <div className="text-[9px] text-slate-400 uppercase">Сек</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={stakingLoading || !userAddress}
-            onClick={() => onStakeAction(true)}
-            className="py-2.5 bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow"
-          >
-            📥 В стейкинг
-          </button>
-          <button
-            type="button"
-            disabled={unstakeLoading || !userAddress}
-            onClick={() => onStakeAction(false)}
-            className="py-2.5 bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/30"
-          >
-            📤 Снять
-          </button>
+        {/* Информация о текущем стейкинге */}
+        <div className="bg-[#070b14]/60 p-3.5 rounded-2xl border border-white/5 space-y-2">
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-400">В стейкинге:</span>
+            <span className="font-bold font-mono text-cyan-300">{stakedGramBalance.toLocaleString()} GRAM</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-400">Доходность:</span>
+            <span className="font-bold font-mono text-emerald-400">30% APY</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-400">Ожидаемо за год:</span>
+            <span className="font-bold font-mono text-white">+{yearlyReward} GRAM</span>
+          </div>
         </div>
+
+        {/* Управление стейкингом */}
+        <div className="space-y-2.5">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300">Количество токенов</label>
+          <input
+            type="number"
+            value={stakeInputAmount}
+            onChange={(e) => setStakeInputAmount(e.target.value)}
+            className="w-full bg-[#070b14]/80 border border-cyan-500/30 rounded-2xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+            placeholder="100"
+          />
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => onStakeAction(true)}
+              disabled={stakingLoading}
+              className="py-3 bg-gradient-to-r from-cyan-400 to-blue-600 text-slate-950 font-black text-xs uppercase rounded-2xl shadow-lg shadow-cyan-500/20 active:scale-95 transition-all hover:brightness-110 disabled:opacity-50"
+            >
+              {stakingLoading ? 'Блокировка...' : 'В стейкинг 🔒'}
+            </button>
+            <button
+              type="button"
+              onClick={() => onStakeAction(false)}
+              disabled={unstakeLoading}
+              className="py-3 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 font-bold text-xs uppercase rounded-2xl active:scale-95 transition-all disabled:opacity-50"
+            >
+              {unstakeLoading ? 'Снятие...' : 'Снять токены'}
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
