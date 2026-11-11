@@ -87,14 +87,14 @@ export default function GameTab({
           </button>
         </div>
 
-        {/* Стабильный блок монеты с изолированными всплывающими цифрами */}
-        <div className="relative w-full h-40 flex items-center justify-center select-none z-10 my-2 overflow-hidden">
-          {/* Слой для всплывающих цифр (строго изолирован внутри блока с overflow-hidden) */}
-          <div className="absolute inset-0 pointer-events-none z-30">
+        {/* Контейнер монеты с красивой пружинистой анимацией и фиксированной высотой */}
+        <div className="relative w-full h-44 flex items-center justify-center select-none z-10 my-1">
+          {/* Слой для всплывающих цифр урона */}
+          <div className="absolute inset-0 pointer-events-none overflow-visible z-30">
             {floatingNumbers.map((item) => (
               <div
                 key={item.id}
-                className="absolute text-amber-300 font-black text-base font-mono pointer-events-none animate-floatUp drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]"
+                className="absolute text-amber-300 font-black text-lg font-mono pointer-events-none animate-floatUp drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]"
                 style={{ left: `${item.x}px`, top: `${item.y}px` }}
               >
                 +{item.val}
@@ -102,11 +102,11 @@ export default function GameTab({
             ))}
           </div>
 
-          {/* Монета */}
+          {/* Сама монета с сочной анимацией scale */}
           <div
             onClick={onCoinClick}
-            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-amber-500/30 via-yellow-500/20 to-orange-600/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] cursor-pointer p-2.5 border-2 border-amber-400/50 relative transition-transform duration-75 ease-out select-none ${
-              isTapped ? 'scale-95' : 'hover:scale-102'
+            className={`w-36 h-36 rounded-full bg-gradient-to-tr from-amber-500/30 via-yellow-500/20 to-orange-600/30 flex items-center justify-center shadow-[0_0_35px_rgba(245,158,11,0.35)] cursor-pointer p-2.5 border-2 border-amber-400/50 relative select-none transform transition-transform duration-100 ease-out ${
+              isTapped ? 'scale-90 rotate-1' : 'scale-100 hover:scale-105'
             }`}
             style={{ transformOrigin: 'center center' }}
           >
