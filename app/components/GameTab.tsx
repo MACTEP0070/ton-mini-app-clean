@@ -54,7 +54,7 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Кнопки бонусов, лидеров и звезд в ряд */}
+        {/* Кнопки бонусов, лидеров и звезд ТОЛЬКО на вкладке игры */}
         <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
