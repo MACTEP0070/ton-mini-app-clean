@@ -1,0 +1,40 @@
+import { NextResponse } from 'next/server';
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const stars = searchParams.get('stars');
+  const type = searchParams.get('type');
+
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!BOT_TOKEN) {
+    return NextResponse.json({ error: 'Bot token not configured' }, { status: 500 });
+  }
+
+  const title = type === 'energy' ? 'Полная энергия' : 'Супер-буст 5000 GRAM';
+  const description = type === 'energy' ? 'Мгновенное восстановление энергии в игре' : 'Мгновенный бонус монетами на баланс';
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        description,
+        payload: `stars_pay_${type}`,
+        provider_token: '', // Обязательно пустая строка для Telegram Stars!
+        currency: 'XTR',    // Валюта Telegram Stars
+        prices: [{ label: 'Stars', amount: parseInt(stars || '50', 10) }],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.ok) {
+      return NextResponse.json({ invoiceLink: data.result });
+    } else {
+      return NextResponse.json({ error: data.description }, { status: 400 });
+    }
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
