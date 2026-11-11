@@ -13,6 +13,7 @@ interface GameTabProps {
   onUpgradeMultitap: () => void;
   onUpgradeEnergyLimit: () => void;
   onOpenDaily: () => void;
+  onOpenLeaderboard: () => void;
 }
 
 export default function GameTab({
@@ -28,6 +29,7 @@ export default function GameTab({
   onUpgradeMultitap,
   onUpgradeEnergyLimit,
   onOpenDaily,
+  onOpenLeaderboard,
 }: GameTabProps) {
   return (
     <div className="space-y-3 text-center animate-fadeIn">
@@ -44,14 +46,23 @@ export default function GameTab({
           </div>
         </div>
 
-        {/* Кнопка ежедневного бонуса */}
-        <button
-          type="button"
-          onClick={onOpenDaily}
-          className="w-full py-2.5 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2 active:scale-95 transition-all"
-        >
-          <span>🎁 Ежедневный бонус</span>
-        </button>
+        {/* Кнопки бонусов и лидеров в один ряд */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onOpenDaily}
+            className="py-2.5 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+          >
+            <span>🎁 Бонус</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenLeaderboard}
+            className="py-2.5 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1 active:scale-95 transition-all"
+          >
+            <span>🏆 Топ</span>
+          </button>
+        </div>
 
         {/* Монета кликера */}
         <div className="relative flex items-center justify-center py-6 select-none h-44">
